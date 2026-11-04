@@ -1,5 +1,6 @@
 
-# PS-061 – State Diagrams
+# PS-061 – Pharmacy Inventory Management System
+# State Diagrams
 
 ## 1. Batch Lifecycle State Diagram
 
@@ -7,19 +8,19 @@
 stateDiagram-v2
     [*] --> RECEIVED
 
-    RECEIVED --> AVAILABLE: Receipt validated
+    RECEIVED --> AVAILABLE: Batch receipt validated
 
-    AVAILABLE --> DEPLETED: Available quantity becomes zero
+    AVAILABLE --> DEPLETED: Available stock becomes zero
 
-    AVAILABLE --> FROZEN: Recall or quarantine event
+    AVAILABLE --> FROZEN: Recall event received
 
-    AVAILABLE --> RETURNED: Eligible supplier return accepted
+    AVAILABLE --> RETURNED: Entire eligible batch returned
 
-    AVAILABLE --> EXPIRED: Expiry month has passed
+    AVAILABLE --> EXPIRED: Last valid expiry day has passed
 
     FROZEN --> RETURNED: Recalled batch returned to supplier
 
-    FROZEN --> EXPIRED: Expiry month has passed
+    FROZEN --> EXPIRED: Last valid expiry day has passed
 
     EXPIRED --> WRITTEN_OFF: First day of following month
 
@@ -27,15 +28,20 @@ stateDiagram-v2
     RETURNED --> [*]
     WRITTEN_OFF --> [*]
 
-    note right of FROZEN
-      Dispensing is prohibited
-      after the recall timestamp.
+    note right of AVAILABLE
+        FEFO selects eligible batches.
+        Near-expiry is a calculated flag,
+        not a permanent batch state.
     end note
 
-    note right of AVAILABLE
-      FEFO selects eligible batches.
-      NEAR_EXPIRY is a calculated flag,
-      not a permanent lifecycle state.
+    note right of FROZEN
+        No dispensing is permitted
+        after the recall timestamp.
+    end note
+
+    note right of EXPIRED
+        Expired stock cannot be dispensed.
+        Write-off uses purchase price.
     end note
 ```
 
@@ -44,20 +50,22 @@ stateDiagram-v2
 | State | Description |
 |---|---|
 | RECEIVED | Stock batch has been received |
-| AVAILABLE | Batch has usable stock |
-| FROZEN | Batch cannot be dispensed |
-| DEPLETED | Available stock is zero |
-| RETURNED | Remaining stock has been returned to supplier |
-| EXPIRED | Batch is past its expiry month |
-| WRITTEN_OFF | Expired stock has been financially written off |
+| AVAILABLE | Batch contains usable stock |
+| FROZEN | Batch is blocked due to recall |
+| DEPLETED | Available stock becomes zero |
+| RETURNED | Entire remaining eligible batch is returned |
+| EXPIRED | Batch has passed its last valid expiry day |
+| WRITTEN_OFF | Expired inventory has been financially written off |
 
-A batch is valid through the last calendar day
-of its expiry month.
+Important rules:
 
-Expiry write-off occurs on the first day
-of the following month.
+- A batch remains valid through the last calendar day of its expiry month.
+- Expiry write-off happens on the first day of the following month.
+- Partial supplier returns are recorded as quantity movements; the batch need not enter RETURNED state until all remaining stock has been returned.
+- A recall event must be recorded with its timestamp.
+- Near-expiry status is calculated according to the business date.
 
-
+---
 
 ## 3. Prescription Line State Diagram
 
@@ -65,11 +73,11 @@ of the following month.
 stateDiagram-v2
     [*] --> NEW
 
-    NEW --> VALIDATED: Prescription checks pass
+    NEW --> REJECTED: Prescription validation fails
 
-    NEW --> REJECTED: Invalid prescription or limit exceeded
+    NEW --> VALIDATED: Prescription validation succeeds
 
-    VALIDATED --> DISPENSED: Full quantity dispensed
+    VALIDATED --> DISPENSED: Full required quantity dispensed
 
     VALIDATED --> PARTIALLY_FILLED: Some valid stock available
 
@@ -77,53 +85,59 @@ stateDiagram-v2
 
     VALIDATED --> PENDING: NO_SUBSTITUTION prevents substitution
 
+    PARTIALLY_FILLED --> DISPENSED: Remaining quantity fulfilled
+
     PARTIALLY_FILLED --> PENDING: Shortfall recorded
 
-    PENDING --> PARTIALLY_FILLED: Partial fulfilment before deadline
+    PENDING --> PARTIALLY_FILLED: Some pending quantity fulfilled
 
-    PARTIALLY_FILLED --> DISPENSED: All required quantity fulfilled
+    PENDING --> DISPENSED: Entire pending quantity fulfilled
 
-    PENDING --> DISPENSED: Remaining quantity fulfilled
-
-    PENDING --> EXPIRED: Seven-day pending period expires
+    PENDING --> EXPIRED: Seven-day pending validity expires
 
     REJECTED --> [*]
     DISPENSED --> [*]
     EXPIRED --> [*]
 
+    note right of PARTIALLY_FILLED
+        Some quantity has been dispensed.
+        The remaining quantity is tracked
+        separately as pending.
+    end note
+
     note right of PENDING
-      Pending quantity is tracked.
-      Standard partial-fill pending
-      validity is 7 days.
+        A partial-fill pending line
+        remains valid for seven days.
     end note
 
     note right of REJECTED
-      Store the rejection reason:
-      REJECTED_LIMIT,
-      REJECTED_EXPIRED_RX,
-      or another validation failure.
+        Examples:
+        REJECTED_LIMIT
+        REJECTED_EXPIRED_RX
     end note
 ```
 
-## 4. Prescription State Descriptions
+## 4. Prescription Line State Descriptions
 
 | State | Description |
 |---|---|
-| NEW | Prescription line is created |
-| VALIDATED | Prescription and dispensing rules passed |
-| PARTIALLY_FILLED | Some required units have been dispensed |
-| PENDING | Outstanding quantity is awaiting fulfilment |
+| NEW | Prescription line has been created |
+| VALIDATED | Prescription checks have passed |
+| PARTIALLY_FILLED | Some required quantity has been dispensed |
+| PENDING | Remaining quantity awaits fulfilment |
 | DISPENSED | Entire required quantity has been dispensed |
-| REJECTED | Dispensing is rejected |
-| EXPIRED | Pending fulfilment period has ended |
+| REJECTED | Dispensing request has been rejected |
+| EXPIRED | Pending fulfilment validity has expired |
 
-## 5. Important Transition Rules
+## 5. Important State Transition Rules
 
-1. A prescription must pass validation before dispensing.
-2. Partial dispensing occurs only when valid stock is insufficient.
-3. The undispensed quantity is recorded as pending.
-4. Pending partial-fill lines are valid for seven days.
-5. A pending quantity fulfilled before its deadline completes the line.
-6. A line with NO_SUBSTITUTION remains pending when the prescribed brand is unavailable.
-7. Prescription validity, refill restrictions and rolling dispensing limits must be checked before every dispense.
-```
+1. Prescription validation must occur before dispensing.
+2. A prescription line may be rejected when validity, schedule or quantity restrictions fail.
+3. Partial fill is permitted only when eligible stock is insufficient.
+4. The dispensed quantity and remaining pending quantity must be stored separately.
+5. A partial-fill pending line is valid for seven days.
+6. Pending quantities may be fulfilled before the validity deadline.
+7. Schedule X no-refill restrictions and Schedule H1 refill restrictions must be checked independently.
+8. A NO_SUBSTITUTION line cannot be substituted when the prescribed brand is unavailable.
+
+The specification does not separately define the pending validity period for NO_SUBSTITUTION lines. This remains an open design decision.
