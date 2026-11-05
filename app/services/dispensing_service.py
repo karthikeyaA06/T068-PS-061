@@ -1,5 +1,5 @@
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, time
 from decimal import Decimal, ROUND_CEILING, ROUND_HALF_UP
 
 import mysql.connector
@@ -12,9 +12,13 @@ from app.services.fefo_service import (
     FEFOSelector
 )
 
+from app.services.compliance_service import (
+    PrescriptionComplianceService
+)
+
 
 class DispensingService:
-    """Handles FEFO dispensing and stock deduction."""
+    """FEFO dispensing with prescription compliance and registers."""
 
     @staticmethod
     def calculate_required_units(
@@ -83,104 +87,123 @@ class DispensingService:
 
             cursor = connection.cursor(dictionary=True)
 
-            # 1. Lock and retrieve prescription line
+            # 1. Retrieve and lock prescription line.
 
-            line = DispensingRepository.get_prescription_line_for_update(
-                cursor,
-                prescription_line_id
+            line = (
+                DispensingRepository
+                .get_prescription_line_for_update(
+                    cursor, prescription_line_id
+                )
             )
 
             if line is None:
                 raise ValueError("Prescription line not found.")
 
-            # 2. Check prescription line status
-
-            if line["line_status"] not in (
-                "NEW",
-                "PENDING",
-                "PARTIALLY_FILLED"
-            ):
-                raise ValueError(
-                    "Prescription line cannot be dispensed again."
-                )
-
-            if not line["doctor_is_active"]:
-                raise ValueError("Doctor registration is not valid.")
-
-            # 3. Check prescription date
-
-            prescription_date = line["prescription_date"]
-
-            if prescription_date > dispense_date:
-                raise ValueError("Prescription date is in the future.")
-
-            prescription_age = (
-                dispense_date - prescription_date
-            ).days
-
-            schedule = line["schedule"]
-
-            if schedule in ("H", "H1") and prescription_age > 30:
-                raise ValueError("REJECTED_EXPIRED_RX")
-
-            if schedule == "X":
-                if prescription_age > 7:
-                    raise ValueError("REJECTED_EXPIRED_RX")
-
-                if line["days_supply"] > 7:
-                    raise ValueError(
-                        "Schedule X supply cannot exceed 7 days."
-                    )
-
-                if line["refill_count"] > 0:
-                    raise ValueError(
-                        "Schedule X prescriptions cannot be refilled."
-                    )
-
-            # 4. Check customer
-
-            customer = DispensingRepository.get_customer(
-                cursor,
-                customer_id
+            DispensingRepository.lock_patient(
+                cursor, line["patient_id"]
             )
 
-            if customer is None:
-                raise ValueError("Customer not found.")
+            # 2. Identify whether this is a first dispense
+            #    or a refill of an already completed line.
 
-            # 5. Check pending validity
+            line_status = line["line_status"]
 
-            if line["line_status"] in (
+            if line_status not in {
+                "NEW",
                 "PENDING",
-                "PARTIALLY_FILLED"
-            ):
+                "PARTIALLY_FILLED",
+                "DISPENSED"
+            }:
+                raise ValueError(
+                    "Prescription line cannot be dispensed."
+                )
+
+            is_refill_start = line_status == "DISPENSED"
+
+            if line_status in {"PENDING", "PARTIALLY_FILLED"}:
                 pending_until = line["pending_until"]
 
                 if pending_until is None or now > pending_until:
                     raise ValueError("PENDING_LINE_EXPIRED")
 
-            # 6. Calculate required units
+            # 3. Validate prescription, doctor and schedule.
+
+            schedule = line["schedule"]
+
+            PrescriptionComplianceService.validate_prescription(
+                schedule=schedule,
+                prescription_date=line["prescription_date"],
+                dispense_date=dispense_date,
+                doctor_registration_number=line[
+                    "registration_number"
+                ],
+                doctor_is_active=bool(line["doctor_is_active"]),
+                days_supply=int(line["days_supply"]),
+                refill_count=int(line["refill_count"])
+            )
+
+            # 4. Validate refill timing, when applicable.
+
+            refill_count = int(line["refill_count"])
+
+            if is_refill_start:
+                first_dispensed_at = (
+                    DispensingRepository.get_first_dispensed_at(
+                        cursor, prescription_line_id
+                    )
+                )
+
+                PrescriptionComplianceService.validate_refill(
+                    schedule=schedule,
+                    is_refill=True,
+                    refill_count=refill_count,
+                    first_dispensed_at=first_dispensed_at,
+                    current_datetime=now,
+                    original_days_supply=int(line["days_supply"])
+                )
+
+                refill_count += 1
+                previous_dispensed = 0
+                pending_until = None
+
+            else:
+                previous_dispensed = int(
+                    line["dispensed_quantity"]
+                )
+
+                pending_until = line["pending_until"]
+
+            # 5. Verify customer.
+
+            customer = DispensingRepository.get_customer(
+                cursor, customer_id
+            )
+
+            if customer is None:
+                raise ValueError("Customer not found.")
+
+            # 6. Calculate required quantity.
 
             required_units = self.calculate_required_units(
                 line["dose_per_day"],
-                line["days_supply"],
-                line["pack_size"],
-                line["sells_full_packs"]
+                int(line["days_supply"]),
+                int(line["pack_size"]),
+                bool(line["sells_full_packs"])
             )
-
-            previous_dispensed = line["dispensed_quantity"]
 
             remaining_quantity = (
                 required_units - previous_dispensed
             )
 
             if remaining_quantity <= 0:
-                raise ValueError("Nothing remains to be dispensed.")
+                raise ValueError(
+                    "No remaining quantity to dispense."
+                )
 
-            # 7. Retrieve and lock eligible inventory rows
+            # 7. Retrieve and lock available batches.
 
             rows = DispensingRepository.get_batches_for_update(
-                cursor,
-                line["drug_id"]
+                cursor, line["drug_id"]
             )
 
             candidates = [
@@ -198,20 +221,19 @@ class DispensingService:
             eligible_batches = FEFOSelector.select_eligible_batches(
                 candidates,
                 dispense_date,
-                line["days_supply"]
+                int(line["days_supply"])
             )
 
-            # 8. Allocate stock using FEFO
+            # 8. Calculate FEFO batch allocations.
 
             allocations = []
             quantity_left = remaining_quantity
 
             full_pack_only = bool(line["sells_full_packs"])
-            pack_size = line["pack_size"]
+            pack_size = int(line["pack_size"])
 
             for batch in eligible_batches:
-
-                if quantity_left == 0:
+                if quantity_left <= 0:
                     break
 
                 available = batch.available_quantity
@@ -232,7 +254,6 @@ class DispensingService:
                     continue
 
                 allocations.append((batch, quantity))
-
                 quantity_left -= quantity
 
             total_dispensed = sum(
@@ -247,13 +268,11 @@ class DispensingService:
                 required_units - new_dispensed_total
             )
 
-            # 9. Handle no available stock
+            # 9. If no valid stock is available, create a pending line.
 
             if total_dispensed == 0:
-                if line["line_status"] == "NEW":
+                if pending_until is None:
                     pending_until = now + timedelta(days=7)
-                else:
-                    pending_until = line["pending_until"]
 
                 DispensingRepository.update_prescription_line(
                     cursor,
@@ -262,7 +281,8 @@ class DispensingService:
                     previous_dispensed,
                     pending_quantity,
                     "PENDING",
-                    pending_until
+                    pending_until,
+                    refill_count
                 )
 
                 connection.commit()
@@ -274,12 +294,44 @@ class DispensingService:
                     "allocations": []
                 }
 
-            # 10. Create dispensing header
+            # 10. Check actual dispensed days against rolling limit.
 
-            is_partial = pending_quantity > 0
+            window_start = datetime.combine(
+                dispense_date - timedelta(days=89),
+                time.min
+            )
+
+            window_end = datetime.combine(
+                dispense_date,
+                time.max
+            )
+
+            prior_days_supply = (
+                DispensingRepository.get_prior_days_supply(
+                    cursor,
+                    line["patient_id"],
+                    line["drug_id"],
+                    window_start,
+                    window_end
+                )
+            )
+
+            actual_days_dispensed = (
+                Decimal(total_dispensed)
+                / Decimal(str(line["dose_per_day"]))
+            )
+
+            PrescriptionComplianceService.validate_rolling_limit(
+                prior_days_supply=prior_days_supply,
+                requested_days_supply=actual_days_dispensed,
+                schedule=schedule
+            )
+
+            # 11. Create dispense header.
 
             dispense_status = (
-                "PARTIAL" if is_partial else "COMPLETED"
+                "PARTIAL" if pending_quantity > 0
+                else "COMPLETED"
             )
 
             dispense_id = DispensingRepository.create_dispense(
@@ -290,14 +342,12 @@ class DispensingService:
                 dispense_status
             )
 
-            # 11. Deduct stock from each batch
-
             allocation_results = []
 
-            dose = Decimal(str(line["dose_per_day"]))
+            # 12. Deduct stock, save dispense lines and
+            #     create compliance registers.
 
             for batch, quantity in allocations:
-
                 new_stock = (
                     batch.available_quantity - quantity
                 )
@@ -309,21 +359,24 @@ class DispensingService:
                 )
 
                 days_dispensed = (
-                    Decimal(quantity) / dose
+                    Decimal(quantity)
+                    / Decimal(str(line["dose_per_day"]))
                 ).quantize(
                     Decimal("0.001"),
                     rounding=ROUND_HALF_UP
                 )
 
-                DispensingRepository.create_dispense_line(
-                    cursor,
-                    dispense_id,
-                    prescription_line_id,
-                    line["drug_id"],
-                    batch.batch_id,
-                    quantity,
-                    days_dispensed,
-                    line["brand_name"]
+                dispense_line_id = (
+                    DispensingRepository.create_dispense_line(
+                        cursor,
+                        dispense_id,
+                        prescription_line_id,
+                        line["drug_id"],
+                        batch.batch_id,
+                        quantity,
+                        days_dispensed,
+                        line["brand_name"]
+                    )
                 )
 
                 DispensingRepository.record_inventory_movement(
@@ -333,21 +386,45 @@ class DispensingService:
                     dispense_id
                 )
 
+                # Schedule H1 register.
+
+                if schedule == "H1":
+                    DispensingRepository.record_h1_register(
+                        cursor,
+                        dispense_line_id,
+                        line["patient_name"],
+                        line["registration_number"],
+                        now,
+                        quantity
+                    )
+
+                # Schedule X register, including batch number.
+
+                if schedule == "X":
+                    DispensingRepository.record_x_register(
+                        cursor,
+                        dispense_line_id,
+                        line["patient_name"],
+                        line["registration_number"],
+                        batch.batch_number,
+                        now,
+                        quantity
+                    )
+
                 allocation_results.append({
+                    "batch_id": batch.batch_id,
                     "batch_number": batch.batch_number,
                     "quantity": quantity,
                     "remaining_stock": new_stock
                 })
 
-            # 12. Update prescription line
+            # 13. Update prescription line.
 
-            if is_partial:
+            if pending_quantity > 0:
                 status = "PENDING"
 
-                if line["line_status"] == "NEW":
+                if pending_until is None:
                     pending_until = now + timedelta(days=7)
-                else:
-                    pending_until = line["pending_until"]
 
             else:
                 status = "DISPENSED"
@@ -360,10 +437,11 @@ class DispensingService:
                 new_dispensed_total,
                 pending_quantity,
                 status,
-                pending_until
+                pending_until,
+                refill_count
             )
 
-            # 13. Commit all stock and dispensing changes together
+            # 14. Commit stock, dispense, movement and registers together.
 
             connection.commit()
 
