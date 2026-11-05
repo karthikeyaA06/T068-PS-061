@@ -154,7 +154,11 @@ CREATE TABLE IF NOT EXISTS prescription_lines (
 CREATE TABLE IF NOT EXISTS dispenses (
     dispense_id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
+    customer_id INT NOT NULL,
+
     prescription_id INT NOT NULL,
+
+    patient_id INT NOT NULL,
 
     dispensed_at DATETIME(6) NOT NULL
         DEFAULT CURRENT_TIMESTAMP(6),
@@ -164,15 +168,28 @@ CREATE TABLE IF NOT EXISTS dispenses (
         'COMPLETED'
     ) NOT NULL,
 
+    CONSTRAINT fk_dispense_customer
+        FOREIGN KEY (customer_id)
+        REFERENCES customers(customer_id),
+
     CONSTRAINT fk_dispense_prescription
         FOREIGN KEY (prescription_id)
         REFERENCES prescriptions(prescription_id),
 
+    CONSTRAINT fk_dispense_patient
+        FOREIGN KEY (patient_id)
+        REFERENCES patients(patient_id),
+
     INDEX idx_dispense_prescription_date (
         prescription_id,
         dispensed_at
+    ),
+
+    INDEX idx_dispense_patient_date (
+        patient_id,
+        dispensed_at
     )
-);
+) ENGINE=InnoDB;
 
 
 -- =====================================================

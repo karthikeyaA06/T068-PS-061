@@ -191,5 +191,52 @@ CREATE TABLE IF NOT EXISTS batches (
 );
 
 -- =====================================================
+-- TABLE 5: CUSTOMERS
+-- Customer identity and loyalty status used by billing.
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS customers (
+    customer_id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_name VARCHAR(150) NOT NULL,
+    phone VARCHAR(20),
+    loyalty_member BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_customer_phone (phone)
+) ENGINE=InnoDB;
+
+
+-- =====================================================
+-- TABLE 6: INVENTORY MOVEMENTS
+-- Auditable stock ledger. Positive quantity_delta adds stock;
+-- negative quantity_delta removes stock.
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS inventory_movements (
+    movement_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    batch_id INT NOT NULL,
+    movement_type ENUM(
+        'RECEIPT',
+        'DISPENSE',
+        'CUSTOMER_RETURN',
+        'SUPPLIER_RETURN',
+        'WRITE_OFF',
+        'RECALL',
+        'ADJUSTMENT'
+    ) NOT NULL,
+    quantity_delta INT NOT NULL,
+    reference_type VARCHAR(50),
+    reference_id VARCHAR(100),
+    notes TEXT,
+    movement_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CONSTRAINT fk_movement_batch
+        FOREIGN KEY (batch_id)
+        REFERENCES batches(batch_id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+    INDEX idx_movement_batch_date (batch_id, movement_at),
+    INDEX idx_movement_reference (reference_type, reference_id)
+) ENGINE=InnoDB;
+
+-- =====================================================
 -- END OF FOUNDATION SCHEMA
 -- =====================================================

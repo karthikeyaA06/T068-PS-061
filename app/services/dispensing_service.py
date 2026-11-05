@@ -29,8 +29,25 @@ class DispensingService:
     ):
         dose = Decimal(str(dose_per_day))
 
-        if dose <= 0 or days_supply <= 0:
-            raise ValueError("Dose and days supply must be positive.")
+        if not dose.is_finite() or dose <= 0:
+            raise ValueError("Dose per day must be a positive finite number.")
+
+        if (
+            isinstance(days_supply, bool)
+            or not isinstance(days_supply, int)
+            or days_supply <= 0
+        ):
+            raise ValueError("Days supply must be a positive integer.")
+
+        if (
+            isinstance(pack_size, bool)
+            or not isinstance(pack_size, int)
+            or pack_size <= 0
+        ):
+            raise ValueError("Pack size must be a positive integer.")
+
+        if not isinstance(sells_full_packs, bool):
+            raise ValueError("sells_full_packs must be boolean.")
 
         raw_units = dose * Decimal(days_supply)
 
@@ -76,7 +93,8 @@ class DispensingService:
         if not isinstance(dispense_date, date):
             raise ValueError("Invalid dispensing date.")
 
-        now = datetime.now()
+        # Keep database timestamps aligned with the requested business date.
+        now = datetime.combine(dispense_date, datetime.now().time())
 
         connection = None
         cursor = None
@@ -339,6 +357,7 @@ class DispensingService:
                 customer_id,
                 line["prescription_id"],
                 line["patient_id"],
+                now,
                 dispense_status
             )
 
@@ -375,7 +394,8 @@ class DispensingService:
                         batch.batch_id,
                         quantity,
                         days_dispensed,
-                        line["brand_name"]
+                        line["brand_name"],
+                        now
                     )
                 )
 

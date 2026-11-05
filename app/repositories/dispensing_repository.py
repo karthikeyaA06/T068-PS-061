@@ -118,16 +118,13 @@ class DispensingRepository:
             SELECT COALESCE(
                 SUM(dl.days_supply_dispensed), 0
             ) AS prior_days_supply
-
             FROM dispense_lines dl
-
             JOIN dispenses dp
                 ON dl.dispense_id = dp.dispense_id
-
             WHERE dp.patient_id = %s
               AND dl.drug_id = %s
-              AND dl.dispensed_at >= %s
-              AND dl.dispensed_at <= %s
+              AND dp.dispensed_at >= %s
+              AND dp.dispensed_at <= %s
         """
 
         cursor.execute(
@@ -139,15 +136,15 @@ class DispensingRepository:
 
     @staticmethod
     def get_first_dispensed_at(cursor, prescription_line_id):
-        cursor.execute(
-            """
-            SELECT MIN(dispensed_at) AS first_dispensed_at
-            FROM dispense_lines
-            WHERE prescription_line_id = %s
-            """,
-            (prescription_line_id,)
-        )
+        query = """
+            SELECT MIN(dp.dispensed_at) AS first_dispensed_at
+            FROM dispense_lines dl
+            JOIN dispenses dp
+                ON dl.dispense_id = dp.dispense_id
+            WHERE dl.prescription_line_id = %s
+        """
 
+        cursor.execute(query, (prescription_line_id,))
         return cursor.fetchone()["first_dispensed_at"]
 
     @staticmethod
@@ -172,6 +169,7 @@ class DispensingRepository:
         customer_id,
         prescription_id,
         patient_id,
+        dispensed_at,
         status
     ):
         cursor.execute(
@@ -180,11 +178,18 @@ class DispensingRepository:
                 customer_id,
                 prescription_id,
                 patient_id,
+                dispensed_at,
                 status
             )
-            VALUES (%s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s)
             """,
-            (customer_id, prescription_id, patient_id, status)
+            (
+                customer_id,
+                prescription_id,
+                patient_id,
+                dispensed_at,
+                status
+            )
         )
 
         return cursor.lastrowid
@@ -198,7 +203,8 @@ class DispensingRepository:
         batch_id,
         quantity,
         days_supply,
-        brand_name
+        brand_name,
+        dispensed_at
     ):
         cursor.execute(
             """
@@ -211,9 +217,10 @@ class DispensingRepository:
                 days_supply_dispensed,
                 is_substituted,
                 prescribed_brand,
-                dispensed_brand
+                dispensed_brand,
+                dispensed_at
             )
-            VALUES (%s, %s, %s, %s, %s, %s, FALSE, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, FALSE, %s, %s, %s)
             """,
             (
                 dispense_id,
@@ -223,7 +230,8 @@ class DispensingRepository:
                 quantity,
                 days_supply,
                 brand_name,
-                brand_name
+                brand_name,
+                dispensed_at
             )
         )
 
