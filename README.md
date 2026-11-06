@@ -54,16 +54,26 @@ run_*_demo.py     Small manual service demonstrations
 python -m pytest -v
 ```
 
-The current automated suite contains 46 unit tests covering:
+The current automated suite contains 73 unit tests covering:
 
 - FEFO expiry-month handling, ordering and acute/chronic cutoffs;
 - GST-inclusive billing arithmetic, discounts and bill rounding;
 - prescription date, Schedule X quantity, rolling supply limits and refill validation;
-- required-unit rounding, including exact-pack and one-unit-over-pack cases.
+- required-unit rounding, including exact-pack and one-unit-over-pack cases;
+- OTC quantity limits, substitute selection, return eligibility, reorder rounding, expiry write-off valuation, supplier-return eligibility and recall timestamp checks.
 
 These are unit tests. They do not constitute end-to-end MySQL integration tests for a complete dispensing transaction or register write.
 
 ## Demo runners
+
+The Week 3 operational policy demo is safe and does not write to MySQL:
+
+```powershell
+python run_week3_rules_demo.py
+```
+
+See `docs/week3_demo_guide.md` for the demonstrated rule boundaries and limitations.
+
 
 The `run_*_demo.py` files exercise individual service operations against the configured database. Some demos insert persistent records and use fixed demonstration IDs/batch numbers. Run them only against a disposable demo database or after checking the script inputs; do not repeatedly run them against a shared database.
 
@@ -92,14 +102,19 @@ Implemented in the current code snapshot:
 - schedule validation helpers and H1/X register insert methods;
 - GST-inclusive bill calculations, discount selection and whole-rupee bill rounding.
 
-Not yet implemented as complete workflows in this code snapshot:
+Implemented as database-independent decision helpers, but not yet connected as complete workflows in this code snapshot:
 
-- command-file parsing and batch command execution;
-- OTC sale limit enforcement;
-- selecting and dispensing generic substitute brands;
-- customer returns;
-- supplier returns and timestamped recall processing;
-- end-of-day expiry write-offs and reorder recommendations;
-- full MySQL integration tests for dispense, billing and register transactions.
+- OTC sale limit policy;
+- generic substitute eligibility and cheapest-brand selection;
+- customer-return eligibility and original-price refund calculation;
+- reorder quantity calculation;
+- supplier-return eligibility and recall timestamp comparison;
+- near-expiry flag and expiry write-off valuation.
 
-See `docs/design_document.md` for the complete BR-01 through BR-12 specification and `docs/decision_log.md` for unresolved assumptions. Do not present the unimplemented workflows as completed functionality.
+Still pending as complete workflows:
+
+- command-file parsing and batch command execution (the official input format must be confirmed);
+- connecting the above operational policies to MySQL transactions and reports;
+- end-to-end MySQL integration tests for dispense, billing, returns, recalls and register transactions.
+
+See `docs/design_document.md` for the complete BR-01 through BR-12 specification, `docs/week3_test_matrix.md` for rule-to-test mapping and implementation limitations, and `docs/decision_log.md` for unresolved assumptions. Do not present the unimplemented workflows as completed functionality.
