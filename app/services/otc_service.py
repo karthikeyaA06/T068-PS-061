@@ -72,25 +72,28 @@ class OTCSalesService:
 
             day_start = datetime.combine(sale_at.date(), time.min)
             next_day = day_start + timedelta(days=1)
+            # Count prior base units for this exact customer, drug and business
+            # date. Convert the combined units to pack-equivalents only once;
+            # rounding each partial purchase separately can incorrectly reject
+            # a customer who has not exceeded two complete pack-equivalents.
             cursor.execute(
-                """SELECT COALESCE(SUM(CEIL(product_quantity / pack_size)), 0) AS prior_packs
-                   FROM (
-                       SELECT dl.drug_id, d.pack_size,
-                              SUM(dl.quantity) AS product_quantity
-                       FROM dispenses dp
-                       JOIN dispense_lines dl ON dl.dispense_id = dp.dispense_id
-                       JOIN drugs d ON d.drug_id = dl.drug_id
-                       WHERE dp.customer_id = %s
-                         AND dp.prescription_id IS NULL
-                         AND dp.dispensed_at >= %s
-                         AND dp.dispensed_at < %s
-                       GROUP BY dl.drug_id, d.pack_size
-                   ) daily_otc""",
-                (customer_id, day_start, next_day),
+                """SELECT COALESCE(SUM(dl.quantity), 0) AS prior_units
+                   FROM dispenses dp
+                   JOIN dispense_lines dl ON dl.dispense_id = dp.dispense_id
+                   WHERE dp.customer_id = %s
+                     AND dp.prescription_id IS NULL
+                     AND dl.drug_id = %s
+                     AND dp.dispensed_at >= %s
+                     AND dp.dispensed_at < %s""",
+                (customer_id, drug_id, day_start, next_day),
             )
-            prior_packs = int(cursor.fetchone()["prior_packs"] or 0)
-            OperationalRulesService.validate_otc_pack_limit(
-                prior_packs, requested_packs, maximum_packs=2
+            prior_units = int(cursor.fetchone()["prior_units"] or 0)
+            OperationalRulesService.validate_otc_sale(
+                schedule=drug["schedule"],
+                quantity_units=quantity,
+                pack_size=pack_size,
+                prior_units_today=prior_units,
+                has_valid_prescription=False,
             )
 
             batch_rows = DispensingRepository.get_batches_for_update(cursor, drug_id)

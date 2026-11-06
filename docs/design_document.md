@@ -267,7 +267,7 @@ The eight edge cases below come from the PS-061 problem statement. Each case mus
 5. Dispensing, stock reduction, dispense-line creation, billing records and register entries must use suitable database transactions so that a failed operation does not leave partial updates.
 6. Near-expiry status is calculated relative to the business date.
 7. Recall processing uses timestamps so that same-day event ordering is preserved.
-8. The command parser will follow the actual sample command-file format supplied for the project; JSONL is not assumed until confirmed.
+8. The supplied project brief identifies JSONL command files. This repository implements the documented envelope in `docs/command_file_format.md`; command names and field names must still be compared with the official evaluator sample before claiming evaluator compatibility.
 
 ### 10.2 Open Decisions Requiring Confirmation
 
@@ -405,4 +405,4 @@ Each case EC-01 through EC-08 in Section 9 must have at least one automated test
 
 The proposed design defines the main scope, functional requirements, business rules, data relationships, state transitions and software layers for PS-061.
 
-It provides the basis for the MySQL schema and Python implementation. The design will be refined against the sample command files and visible expected outputs, with each business rule traced to implementation and automated tests.
+It provides the basis for the MySQL schema and Python implementation. The implemented JSONL command envelope is documented in `docs/command_file_format.md` and must be reconciled with the official command sample and visible expected outputs when supplied, with each business rule traced to implementation and automated tests.

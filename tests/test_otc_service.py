@@ -3,6 +3,7 @@ import pytest
 
 from app.services.fefo_service import BatchCandidate
 from app.services.otc_service import OTCSalesService
+from app.services.operational_rules_service import OperationalRulesService
 
 
 def _batch(expiry_month, available=20, reserved=0, status="ACTIVE"):
@@ -46,3 +47,18 @@ def test_otc_batch_with_31_days_remaining_is_eligible():
 def test_otc_batch_reserved_for_supplier_return_is_not_eligible():
     batch = _batch("2027-05", available=20, reserved=20)
     assert OTCSalesService.is_otc_batch_eligible(batch, date(2026, 11, 6)) is False
+
+
+def test_otc_daily_cap_rounds_combined_partial_sales_only_once():
+    # Prior 18 units plus this 2-unit purchase equals exactly two packs.
+    assert OperationalRulesService.validate_otc_sale(
+        "NONE", quantity_units=2, pack_size=10, prior_units_today=18
+    ) is True
+
+
+def test_otc_daily_cap_rejects_combined_units_above_two_packs():
+    # Prior 18 units plus 3 more would exceed two packs (20 units).
+    with pytest.raises(ValueError, match="PRESCRIPTION_REQUIRED"):
+        OperationalRulesService.validate_otc_sale(
+            "NONE", quantity_units=3, pack_size=10, prior_units_today=18
+        )
