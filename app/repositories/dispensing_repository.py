@@ -45,7 +45,12 @@ class DispensingRepository:
                 d.brand_name,
                 d.schedule,
                 d.pack_size,
-                d.sells_full_packs
+                d.sells_full_packs,
+                d.mrp,
+                d.group_id,
+                sg.molecule,
+                sg.strength,
+                sg.dosage_form
 
             FROM prescription_lines pl
 
@@ -60,6 +65,9 @@ class DispensingRepository:
 
             JOIN drugs d
                 ON pl.drug_id = d.drug_id
+
+            JOIN substitution_groups sg
+                ON d.group_id = sg.group_id
 
             WHERE pl.prescription_line_id = %s
 
@@ -86,24 +94,60 @@ class DispensingRepository:
     def get_batches_for_update(cursor, drug_id):
         query = """
             SELECT
-                batch_id,
-                batch_number,
-                expiry_month_start,
-                received_at,
-                available_quantity,
-                status
-            FROM batches
-            WHERE drug_id = %s
-              AND status = 'ACTIVE'
-              AND available_quantity > 0
+                b.batch_id,
+                b.batch_number,
+                b.expiry_month_start,
+                b.received_at,
+                b.available_quantity,
+                COALESCE(sr.reserved_quantity, 0) AS reserved_quantity,
+                b.status
+            FROM batches b
+            LEFT JOIN (
+                SELECT batch_id, SUM(quantity) AS reserved_quantity
+                FROM supplier_returns
+                WHERE status = 'PENDING'
+                GROUP BY batch_id
+            ) sr ON sr.batch_id = b.batch_id
+            WHERE b.drug_id = %s
+              AND b.status = 'ACTIVE'
+              AND b.available_quantity > COALESCE(sr.reserved_quantity, 0)
             ORDER BY
-                expiry_month_start,
-                received_at,
-                batch_number
+                b.expiry_month_start,
+                b.received_at,
+                b.batch_number
             FOR UPDATE
         """
 
         cursor.execute(query, (drug_id,))
+        return cursor.fetchall()
+
+    @staticmethod
+    def get_substitute_drugs(cursor, group_id, original_drug_id, schedule):
+        cursor.execute(
+            """
+            SELECT
+                d.drug_id,
+                d.brand_name,
+                d.mrp,
+                d.schedule,
+                CASE WHEN d.is_active = TRUE THEN 'ACTIVE' ELSE 'INACTIVE' END AS status,
+                d.group_id,
+                d.pack_size,
+                d.sells_full_packs,
+                sg.molecule,
+                sg.strength,
+                sg.dosage_form
+            FROM drugs d
+            JOIN substitution_groups sg ON sg.group_id = d.group_id
+            WHERE d.group_id = %s
+              AND d.drug_id <> %s
+              AND d.is_active = TRUE
+              AND d.schedule = %s
+            ORDER BY d.mrp, d.brand_name
+            FOR UPDATE
+            """,
+            (group_id, original_drug_id, schedule)
+        )
         return cursor.fetchall()
 
     @staticmethod
@@ -122,7 +166,13 @@ class DispensingRepository:
             JOIN dispenses dp
                 ON dl.dispense_id = dp.dispense_id
             WHERE dp.patient_id = %s
-              AND dl.drug_id = %s
+              AND dl.drug_id IN (
+                    SELECT d2.drug_id
+                    FROM drugs d2
+                    WHERE d2.group_id = (
+                        SELECT d3.group_id FROM drugs d3 WHERE d3.drug_id = %s
+                    )
+              )
               AND dp.dispensed_at >= %s
               AND dp.dispensed_at <= %s
         """
@@ -203,8 +253,10 @@ class DispensingRepository:
         batch_id,
         quantity,
         days_supply,
-        brand_name,
-        dispensed_at
+        prescribed_brand,
+        dispensed_brand,
+        dispensed_at,
+        is_substituted=False
     ):
         cursor.execute(
             """
@@ -220,7 +272,7 @@ class DispensingRepository:
                 dispensed_brand,
                 dispensed_at
             )
-            VALUES (%s, %s, %s, %s, %s, %s, FALSE, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 dispense_id,
@@ -229,8 +281,9 @@ class DispensingRepository:
                 batch_id,
                 quantity,
                 days_supply,
-                brand_name,
-                brand_name,
+                is_substituted,
+                prescribed_brand,
+                dispensed_brand,
                 dispensed_at
             )
         )

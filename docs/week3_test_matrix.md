@@ -2,7 +2,7 @@
 
 **Project:** PS-061 – Pharmacy Inventory with Batch Expiry, Schedule-H Control and Substitution  
 **Test command:** `python -m pytest -v`  
-**Current unit-test count in this package:** 73
+**Current unit-test count in this package:** 86
 
 This matrix distinguishes pure service/unit coverage from database workflow verification. A passing unit test does not, by itself, prove that the corresponding MySQL transaction or command-file path is integrated.
 
@@ -10,15 +10,15 @@ This matrix distinguishes pure service/unit coverage from database workflow veri
 |---|---|---|---|
 | BR-01 FEFO and expiry | `FEFOSelector`: expiry-month end date, acute/chronic cutoffs, FEFO sorting and tie-breakers | `tests/test_fefo.py` | FEFO selection is used by dispensing; database transaction still needs a live integration test |
 | BR-02 Quantity and partial fill | Required-unit rounding and partial-fill allocation in `DispensingService` | `tests/test_dispensing.py` | Allocation path exists; live MySQL partial-fill verification pending |
-| BR-03 H/H1/X controls | `PrescriptionComplianceService`; dispensing calls validators and repository exposes H1/X register inserts | `tests/test_compliance.py` | Register inserts and rollback behavior need live MySQL verification |
-| BR-04 OTC restrictions | `OperationalRulesService.validate_otc_sale` | `tests/test_operational_rules.py` | Daily prior-sales lookup and OTC transaction path not yet connected |
-| BR-05 Generic substitution | `OperationalRulesService.choose_substitute` selects cheapest in-stock same molecule/strength/form substitute at MRP <= prescribed MRP; blocks X and NO_SUBSTITUTION | `tests/test_operational_rules.py` | Pure decision helper only; not yet called by `DispensingService` or persisted to dispense lines |
+| BR-03 H/H1/X controls | `PrescriptionComplianceService`; dispensing calls validators and writes H1/X register rows within the dispense transaction | `tests/test_compliance.py` | Register inserts and rollback behavior need live MySQL verification |
+| BR-04 OTC restrictions | `OTCSalesService.sell` enforces daily two-pack counting and executes stock/dispense transaction; pure policy helper retained | `tests/test_operational_rules.py`, `tests/test_otc_service.py` | Live MySQL transaction and cross-item cap need verification |
+| BR-05 Generic substitution | `DispensingService` queries same-group/same-schedule brands and records prescribed/dispensed brands; policy chooses cheapest eligible substitute; blocks X and NO_SUBSTITUTION | `tests/test_operational_rules.py` | Live MySQL dispensing/substitution and pack-size boundary need verification |
 | BR-06 Billing, GST and discounts | `BillingService` uses Decimal, inclusive-MRP discount, GST back-calculation and final rupee rounding | `tests/test_billing.py` | Calculation coverage present; full MySQL bill transaction needs live test |
-| BR-07 Near-expiry and write-off | Near-expiry date flag, expiry-date test and purchase-price write-off valuation helpers | `tests/test_fefo.py`, `tests/test_operational_rules.py` | End-of-day batch write-off/update transaction not connected |
-| BR-08 Customer returns | Return eligibility, seven-day timestamp window, unopened status, H1/X exclusion, >60-day expiry and original-price refund calculation | `tests/test_operational_rules.py` | Return/batch-restoration transaction and inventory movement not connected |
-| BR-09 Reorder calculation | Three-times-minimum target, pack rounding and pending-supplier-return exclusion | `tests/test_operational_rules.py` | Valid-stock aggregation and reorder report not connected |
-| BR-10 Supplier returns and recalls | Supplier-return eligibility and timestamp-based post-recall violation helper | `tests/test_operational_rules.py` | Recall storage/freeze and supplier-return stock transaction not connected |
-| BR-11 Rolling dispensing limits | 90-day limit and H1 30-day limit validator | `tests/test_compliance.py` | SQL history aggregation is present in dispensing repository; live boundary/concurrency tests pending |
+| BR-07 Near-expiry and write-off | `OperationalWorkflowService.run_end_of_day` returns date-based near-expiry flags and writes off expired stock at purchase price | `tests/test_fefo.py`, `tests/test_operational_rules.py` | Live MySQL end-of-day run and deferred supplier-return case need verification |
+| BR-08 Customer returns | `OperationalWorkflowService.process_customer_return` locks original bill line, validates eligibility, limits previously returned quantity, restores original batch and records movement/refund | `tests/test_operational_rules.py` | Live MySQL return and partial-return transaction need verification |
+| BR-09 Reorder calculation | `OperationalWorkflowService.run_end_of_day` aggregates active unexpired stock less pending supplier returns and persists pack-rounded suggestions | `tests/test_operational_rules.py` | Live MySQL EOD aggregation and report verification pending |
+| BR-10 Supplier returns and recalls | `OperationalWorkflowService` reserves/completes/cancels supplier returns, freezes recalled batches, timestamps recalls and queries post-recall violations | `tests/test_operational_rules.py` | Live MySQL lock/rollback and violation query need verification |
+| BR-11 Rolling dispensing limits | 90-day and H1 30-day validators; repository counts prior dispense days across the same substitution group | `tests/test_compliance.py` | Live SQL boundary/concurrency tests pending |
 | BR-12 Prescription validity and refills | Prescription age, Schedule X 7-day limit/no-refill, H1 one-refill and 80% elapsed validators | `tests/test_compliance.py` | Validator calls are in dispensing service; end-to-end refill tests pending |
 
 ## Edge-case mapping
@@ -37,6 +37,6 @@ This matrix distinguishes pure service/unit coverage from database workflow veri
 ## Week 3 limitations to disclose
 
 1. The command-file parser/router described in the architecture is not implemented in this snapshot. The input file format must be confirmed against the official sample before implementing it.
-2. BR-04, BR-05, BR-07 to BR-10 now have pure decision helpers and unit tests, but their full database workflows are not connected.
-3. A live MySQL integration test is still required for dispense + stock movement + H1/X register inserts + rollback as one transaction.
+2. BR-04, BR-05, BR-07 to BR-10 now have database workflow service methods and policy tests; live MySQL execution tests are still pending.
+3. Live MySQL integration tests are still required for OTC sales, dispensing/substitution, stock movement, customer/supplier returns, recall freezing, end-of-day write-offs/reorders, H1/X register inserts and rollback.
 4. The Week 3 unit suite is not the same as a complete acceptance test of all PS-061 workflows.

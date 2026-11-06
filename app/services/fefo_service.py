@@ -14,6 +14,11 @@ class BatchCandidate:
     received_at: datetime
     available_quantity: int
     status: str
+    reserved_quantity: int = 0
+
+    @property
+    def saleable_quantity(self):
+        return max(0, self.available_quantity - self.reserved_quantity)
 
 
 class FEFOSelector:
@@ -72,7 +77,7 @@ class FEFOSelector:
         if batch.status.upper() != "ACTIVE":
             return False
 
-        if batch.available_quantity <= 0:
+        if batch.saleable_quantity <= 0:
             return False
 
         days_remaining = cls.days_until_expiry(

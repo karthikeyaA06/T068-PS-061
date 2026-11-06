@@ -15,6 +15,7 @@ from app.services.fefo_service import (
 from app.services.compliance_service import (
     PrescriptionComplianceService
 )
+from app.services.operational_rules_service import OperationalRulesService
 
 
 class DispensingService:
@@ -231,7 +232,8 @@ class DispensingService:
                     expiry_month_start=row["expiry_month_start"],
                     received_at=row["received_at"],
                     available_quantity=row["available_quantity"],
-                    status=row["status"]
+                    status=row["status"],
+                    reserved_quantity=int(row.get("reserved_quantity", 0))
                 )
                 for row in rows
             ]
@@ -242,41 +244,127 @@ class DispensingService:
                 int(line["days_supply"])
             )
 
-            # 8. Calculate FEFO batch allocations.
+            effective_drug_id = int(line["drug_id"])
+            effective_brand = line["brand_name"]
+            effective_pack_size = int(line["pack_size"])
+            effective_sells_full_packs = bool(line["sells_full_packs"])
+            is_substituted = False
 
+            # BR-05: substitute only when no eligible prescribed-brand batch exists.
+            # Schedule X is never substituted. NO_SUBSTITUTION stays pending.
+            if not eligible_batches and schedule != "X":
+                substitute_rows = DispensingRepository.get_substitute_drugs(
+                    cursor,
+                    line["group_id"],
+                    line["drug_id"],
+                    schedule
+                )
+                substitute_candidates = []
+                substitute_batches = {}
+
+                for substitute in substitute_rows:
+                    substitute_batch_rows = (
+                        DispensingRepository.get_batches_for_update(
+                            cursor, substitute["drug_id"]
+                        )
+                    )
+                    substitute_candidates_for_drug = [
+                        BatchCandidate(
+                            batch_id=batch_row["batch_id"],
+                            batch_number=batch_row["batch_number"],
+                            expiry_month_start=batch_row["expiry_month_start"],
+                            received_at=batch_row["received_at"],
+                            available_quantity=batch_row["available_quantity"],
+                            status=batch_row["status"],
+                            reserved_quantity=int(batch_row.get("reserved_quantity", 0))
+                        )
+                        for batch_row in substitute_batch_rows
+                    ]
+                    substitute_eligible = FEFOSelector.select_eligible_batches(
+                        substitute_candidates_for_drug,
+                        dispense_date,
+                        int(line["days_supply"])
+                    )
+                    eligible_units = sum(
+                        batch.saleable_quantity for batch in substitute_eligible
+                    )
+                    substitute_candidates.append({
+                        "brand_name": substitute["brand_name"],
+                        "molecule": substitute["molecule"],
+                        "strength": substitute["strength"],
+                        "dosage_form": substitute["dosage_form"],
+                        "group_id": substitute["group_id"],
+                        "schedule": substitute["schedule"],
+                        "mrp": substitute["mrp"],
+                        "available_quantity": eligible_units,
+                        "pack_size": substitute["pack_size"],
+                        "sells_full_packs": bool(substitute["sells_full_packs"]),
+                        "status": substitute["status"],
+                        "drug_id": substitute["drug_id"]
+                    })
+                    substitute_batches[int(substitute["drug_id"])] = substitute_eligible
+
+                prescribed_drug = {
+                    "brand_name": line["brand_name"],
+                    "molecule": line["molecule"],
+                    "strength": line["strength"],
+                    "dosage_form": line["dosage_form"],
+                    "group_id": line["group_id"],
+                    "schedule": schedule,
+                    "mrp": line["mrp"]
+                }
+
+                if line["no_substitution"]:
+                    substitute_result = {
+                        "status": "PENDING",
+                        "reason": "NO_SUBSTITUTION",
+                        "candidate": None
+                    }
+                else:
+                    substitute_result = OperationalRulesService.choose_substitute(
+                        prescribed_drug,
+                        substitute_candidates,
+                        no_substitution=False,
+                        prescribed_brand_available=False
+                    )
+
+                if substitute_result["status"] == "SUBSTITUTE_SELECTED":
+                    selected_substitute = substitute_result["candidate"]
+                    effective_drug_id = int(selected_substitute["drug_id"])
+                    effective_brand = selected_substitute["brand_name"]
+                    eligible_batches = substitute_batches[effective_drug_id]
+                    effective_pack_size = int(selected_substitute["pack_size"])
+                    effective_sells_full_packs = bool(selected_substitute["sells_full_packs"])
+                    required_units = self.calculate_required_units(
+                        line["dose_per_day"],
+                        int(line["days_supply"]),
+                        effective_pack_size,
+                        effective_sells_full_packs
+                    )
+                    remaining_quantity = required_units - previous_dispensed
+                    is_substituted = True
+
+            # 8. Calculate FEFO batch allocations from saleable, unreserved stock.
             allocations = []
             quantity_left = remaining_quantity
-
-            full_pack_only = bool(line["sells_full_packs"])
-            pack_size = int(line["pack_size"])
+            full_pack_only = effective_sells_full_packs
+            pack_size = effective_pack_size
 
             for batch in eligible_batches:
                 if quantity_left <= 0:
                     break
-
-                available = batch.available_quantity
-
+                available = batch.saleable_quantity
                 if full_pack_only:
-                    available = (
-                        available // pack_size
-                    ) * pack_size
-
+                    available = (available // pack_size) * pack_size
                 quantity = min(quantity_left, available)
-
                 if full_pack_only:
-                    quantity = (
-                        quantity // pack_size
-                    ) * pack_size
-
+                    quantity = (quantity // pack_size) * pack_size
                 if quantity <= 0:
                     continue
-
                 allocations.append((batch, quantity))
                 quantity_left -= quantity
 
-            total_dispensed = sum(
-                quantity for _, quantity in allocations
-            )
+            total_dispensed = sum(quantity for _, quantity in allocations)
 
             new_dispensed_total = (
                 previous_dispensed + total_dispensed
@@ -390,12 +478,14 @@ class DispensingService:
                         cursor,
                         dispense_id,
                         prescription_line_id,
-                        line["drug_id"],
+                        effective_drug_id,
                         batch.batch_id,
                         quantity,
                         days_dispensed,
                         line["brand_name"],
-                        now
+                        effective_brand,
+                        now,
+                        is_substituted
                     )
                 )
 

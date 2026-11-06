@@ -42,6 +42,18 @@ class OperationalRulesService:
         return True
 
     @staticmethod
+    def validate_otc_pack_limit(prior_packs_today, requested_packs, maximum_packs=2):
+        """Apply the daily OTC cap across the customer's Schedule NONE purchases."""
+        values = (prior_packs_today, requested_packs, maximum_packs)
+        if any(isinstance(v, bool) or not isinstance(v, int) or v < 0 for v in values):
+            raise ValueError("Pack counts must be non-negative integers.")
+        if requested_packs <= 0 or maximum_packs <= 0:
+            raise ValueError("Requested and maximum packs must be positive.")
+        if prior_packs_today + requested_packs > maximum_packs:
+            raise ValueError("PRESCRIPTION_REQUIRED")
+        return True
+
+    @staticmethod
     def choose_substitute(
         prescribed_drug,
         candidates,
@@ -72,6 +84,13 @@ class OperationalRulesService:
         eligible = []
         for candidate in candidates:
             if str(candidate.get("status", "")).upper() != "ACTIVE":
+                continue
+            candidate_schedule = str(
+                candidate.get("schedule", prescribed_drug.get("schedule", "NONE"))
+            ).upper()
+            if candidate_schedule != str(prescribed_drug.get("schedule", "NONE")).upper():
+                continue
+            if candidate_schedule == "X":
                 continue
             available = candidate.get("available_quantity", 0)
             if isinstance(available, bool) or not isinstance(available, int) or available <= 0:

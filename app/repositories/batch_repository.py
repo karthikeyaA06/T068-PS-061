@@ -103,16 +103,23 @@ class BatchRepository:
                 batch_number,
                 expiry_month_start,
                 received_at,
-                available_quantity,
-                status
-            FROM batches
-            WHERE drug_id = %s
-              AND status = 'ACTIVE'
-              AND available_quantity > 0
+                b.available_quantity,
+                COALESCE(sr.reserved_quantity, 0) AS reserved_quantity,
+                b.status
+            FROM batches b
+            LEFT JOIN (
+                SELECT batch_id, SUM(quantity) AS reserved_quantity
+                FROM supplier_returns
+                WHERE status = 'PENDING'
+                GROUP BY batch_id
+            ) sr ON sr.batch_id = b.batch_id
+            WHERE b.drug_id = %s
+              AND b.status = 'ACTIVE'
+              AND b.available_quantity > COALESCE(sr.reserved_quantity, 0)
             ORDER BY
-                expiry_month_start ASC,
-                received_at ASC,
-                batch_number ASC
+                b.expiry_month_start ASC,
+                b.received_at ASC,
+                b.batch_number ASC
         """
 
         cursor.execute(query, (drug_id,))

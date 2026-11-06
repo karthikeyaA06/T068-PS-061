@@ -12,7 +12,7 @@
 
 ## Unit test result
 
-The package's unit suite contains 73 tests. In the isolated review environment, all 73 passed. The review environment used a minimal MySQL connector import stub because it did not have the connector package installed; the tests exercised pure/unit logic and did not connect to MySQL.
+The updated package's unit suite contains 86 tests. In the isolated review environment, all 86 passed. The review environment used a minimal MySQL connector import stub because it did not have the connector package installed; the tests exercised calculation/policy logic and did not connect to MySQL.
 
 Run the authoritative local test command in the project's activated virtual environment:
 
@@ -23,11 +23,10 @@ python -m pytest -v
 ## Work that is not complete
 
 - The official command-file parser/router is not implemented; the exact input command-file format must first be confirmed.
-- OTC, substitution, returns, reorder, write-off and recall helpers are not yet connected to complete database workflows.
-- Live MySQL end-to-end testing is still required for stock movement, dispense records, billing, H1/X register writes and transaction rollback.
-- Recall event persistence and batch freezing are not yet integrated.
-- End-of-day reporting and reorder generation are not yet integrated.
+- The official command-file parser/router is not implemented because the official input file format was not included in the supplied materials.
+- Live MySQL end-to-end testing is still required for the new OTC, substitution, customer/supplier return, recall, write-off and reorder transactions, plus H1/X register writes and rollback.
+- End-to-end acceptance testing against the evaluator's exact command file and expected outputs remains pending.
 
 ## Submission wording
 
-The current Week 3 snapshot demonstrates implemented and unit-tested rule logic across the core inventory, dispensing, compliance, billing and operational-policy areas. It should not be described as a fully integrated implementation of every PS-061 workflow. Database integration and command-file execution remain explicit follow-up work.
+The current Week 3 snapshot contains implemented service workflows for the identified business rules and 86 passing automated unit tests. It should not be described as fully accepted until the operational schema migration is applied and live MySQL integration tests plus the evaluator-format command-file run have been completed.

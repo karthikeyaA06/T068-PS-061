@@ -185,3 +185,26 @@ def test_br10_preserve_pre_recall_dispense_and_flag_post_recall():
 def test_br10_same_timestamp_is_not_after_recall_timestamp():
     stamp = datetime(2026, 11, 6, 10, 0, 0)
     assert Rules.is_post_recall_dispense(stamp, stamp) is False
+
+
+# Additional daily OTC pack-boundary checks.
+def test_br04_exactly_two_daily_packs_allowed():
+    assert Rules.validate_otc_pack_limit(1, 1) is True
+
+
+def test_br04_third_daily_pack_rejected():
+    with pytest.raises(ValueError, match="PRESCRIPTION_REQUIRED"):
+        Rules.validate_otc_pack_limit(2, 1)
+
+
+def test_br04_invalid_pack_count_rejected():
+    with pytest.raises(ValueError):
+        Rules.validate_otc_pack_limit(-1, 1)
+
+
+def test_br05_candidate_with_different_schedule_is_not_selected():
+    prescribed = _drug("Brand A", "25")
+    candidate = _drug("Brand B", "10")
+    candidate["schedule"] = "H1"
+    result = Rules.choose_substitute(prescribed, [candidate])
+    assert result["status"] == "PENDING"

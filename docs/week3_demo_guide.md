@@ -22,3 +22,15 @@ It demonstrates:
 ## Important limitation
 
 The demo proves the behavior of database-independent policy helpers only. It does not prove that these rules are wired into MySQL transactions, stock restoration/freezing, audit movements, end-of-day reports or command-file processing. Those workflows must be described as pending until implemented and tested.
+
+
+## Operational database workflow integration
+
+Before exercising the new persistent workflows, run `app/database/operational_schema.sql`
+after the existing schema files. Use a backup/disposable database for transaction tests.
+
+Available methods are documented in `README.md`: `OTCSalesService.sell`,
+`OperationalWorkflowService.process_customer_return`, `request_supplier_return`,
+`complete_supplier_return`, `cancel_supplier_return`, `recall_batch`,
+`get_recall_violations`, and `run_end_of_day`. These methods perform persistent
+MySQL writes; do not use existing demo stock IDs without first reviewing the data.

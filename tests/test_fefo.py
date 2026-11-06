@@ -199,3 +199,32 @@ def test_near_expiry_flag_within_90_days():
     assert FEFOSelector.is_near_expiry(
         batch, date(2026, 11, 4)
     ) is True
+
+
+
+def test_reserved_supplier_return_stock_is_not_fefo_available():
+    batch = BatchCandidate(
+        batch_id=99,
+        batch_number="RESERVED",
+        expiry_month_start=date(2027, 5, 1),
+        received_at=datetime(2026, 1, 1),
+        available_quantity=20,
+        status="ACTIVE",
+        reserved_quantity=20,
+    )
+    assert batch.saleable_quantity == 0
+    assert FEFOSelector.is_eligible(batch, date(2026, 11, 6), 10) is False
+
+
+def test_partially_reserved_batch_remains_eligible_for_unreserved_quantity():
+    batch = BatchCandidate(
+        batch_id=100,
+        batch_number="PARTIAL-RESERVED",
+        expiry_month_start=date(2027, 5, 1),
+        received_at=datetime(2026, 1, 1),
+        available_quantity=20,
+        status="ACTIVE",
+        reserved_quantity=5,
+    )
+    assert batch.saleable_quantity == 15
+    assert FEFOSelector.is_eligible(batch, date(2026, 11, 6), 10) is True

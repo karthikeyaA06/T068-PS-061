@@ -56,3 +56,8 @@ def test_required_units_rejects_invalid_inputs(
         DispensingService.calculate_required_units(
             dose, days, pack_size, full_packs
         )
+
+
+
+def test_full_pack_requirement_is_rounded_for_exact_base_units():
+    assert DispensingService.calculate_required_units(1, 10, 10, True) == 10

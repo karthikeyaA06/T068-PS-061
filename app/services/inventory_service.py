@@ -47,7 +47,8 @@ class InventoryService:
                     expiry_month_start=row["expiry_month_start"],
                     received_at=row["received_at"],
                     available_quantity=row["available_quantity"],
-                    status=row["status"]
+                    status=row["status"],
+                    reserved_quantity=int(row.get("reserved_quantity", 0))
                 )
                 for row in rows
             ]

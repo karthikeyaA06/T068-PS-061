@@ -118,3 +118,60 @@ Still pending as complete workflows:
 - end-to-end MySQL integration tests for dispense, billing, returns, recalls and register transactions.
 
 See `docs/design_document.md` for the complete BR-01 through BR-12 specification, `docs/week3_test_matrix.md` for rule-to-test mapping and implementation limitations, and `docs/decision_log.md` for unresolved assumptions. Do not present the unimplemented workflows as completed functionality.
+
+
+## Week 3 operational database workflows
+
+After the existing foundation, dispensing, billing and compliance schemas have
+been applied, execute `app/database/operational_schema.sql` in MySQL Workbench.
+This migration makes `prescription_id`, `patient_id` and
+`prescription_line_id` nullable so OTC sale rows can share the bill/dispense
+ledger, and creates customer-return, supplier-return, recall, write-off and
+reorder tables. It is safe to rerun for the created tables; run the `ALTER TABLE`
+statements once as part of the initial migration.
+
+New workflows:
+
+- `OTCSalesService().sell(customer_id, drug_id, quantity)` creates an OTC dispense
+  transaction, applies the daily two-pack cap and deducts stock using eligible
+  FEFO batches. It returns a `dispense_id`; create the bill using
+  `BillingService().generate_bill(dispense_id)`.
+- `DispensingService().dispense_prescription_line(...)` attempts same-group
+  substitution only when no eligible prescribed-brand batch exists, unless the
+  line is marked `NO_SUBSTITUTION`; it records both brands.
+- `OperationalWorkflowService().process_customer_return(...)` validates and
+  restores eligible stock to the original batch.
+- `request_supplier_return(...)`, `complete_supplier_return(...)` and
+  `cancel_supplier_return(...)` manage reservation and supplier return stock.
+- `recall_batch(...)` freezes a batch and records the timestamp;
+  `get_recall_violations(recall_id)` reports later dispenses.
+- `run_end_of_day(business_date)` returns near-expiry alerts, writes off expired
+  batches, defers batches with a pending supplier return, and persists reorder
+  suggestions.
+
+Example imports:
+
+```python
+from app.services.otc_service import OTCSalesService
+from app.services.operational_workflow_service import OperationalWorkflowService
+
+# Examples write to the configured MySQL database. Use a disposable database.
+# otc = OTCSalesService().sell(customer_id=1, drug_id=1, quantity=10)
+# ops = OperationalWorkflowService().run_end_of_day(date.today())
+```
+
+The official command-file sample/format was not included in the provided project
+materials, so a parser/router has deliberately not been invented. These service
+methods are callable from a command adapter once the required format is known.
+
+**Integration warning:** Unit tests do not prove a live MySQL transaction. Apply
+the migration to a backup/disposable database and exercise the new workflows
+with synthetic records before using them on the existing demonstration data.
+
+Verify the operational migration without modifying any data:
+
+```powershell
+python verify_operational_schema.py
+```
+
+The verifier checks for the operational tables and OTC-nullable columns; it is read-only.
