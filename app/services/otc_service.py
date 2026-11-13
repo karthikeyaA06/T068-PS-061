@@ -23,6 +23,39 @@ class OTCSalesService:
         return int((Decimal(quantity) / Decimal(pack_size)).to_integral_value(rounding=ROUND_CEILING))
 
     @staticmethod
+    def calculate_daily_pack_equivalents(sales_by_drug):
+        """Count prior daily OTC pack-equivalents, rounding once per product.
+
+        Each row must contain ``prior_units`` and ``pack_size``. The count is
+        aggregated across all Schedule NONE drugs for the customer/business day.
+        """
+        if not isinstance(sales_by_drug, (list, tuple)):
+            raise ValueError("sales_by_drug must be a list of sales groups.")
+        total = 0
+        for row in sales_by_drug:
+            if not isinstance(row, dict):
+                raise ValueError("Each sales group must be an object.")
+            units = row.get("prior_units")
+            pack_size = row.get("pack_size")
+            if isinstance(units, bool) or not isinstance(units, int) or units < 0:
+                raise ValueError("prior_units must be a non-negative integer.")
+            if units == 0:
+                continue
+            total += OTCSalesService.calculate_pack_count(units, pack_size)
+        return total
+
+    @classmethod
+    def calculate_incremental_pack_count(cls, prior_units, requested_units, pack_size):
+        """Return only the extra pack-equivalents caused by this purchase."""
+        if isinstance(prior_units, bool) or not isinstance(prior_units, int) or prior_units < 0:
+            raise ValueError("prior_units must be a non-negative integer.")
+        if isinstance(requested_units, bool) or not isinstance(requested_units, int) or requested_units <= 0:
+            raise ValueError("requested_units must be a positive integer.")
+        previous = cls.calculate_pack_count(prior_units, pack_size) if prior_units else 0
+        updated = cls.calculate_pack_count(prior_units + requested_units, pack_size)
+        return updated - previous
+
+    @staticmethod
     def is_otc_batch_eligible(batch, business_date):
         """Non-prescription sales cannot use batches with 30 or fewer days to expiry."""
         return (
@@ -72,28 +105,60 @@ class OTCSalesService:
 
             day_start = datetime.combine(sale_at.date(), time.min)
             next_day = day_start + timedelta(days=1)
-            # Count prior base units for this exact customer, drug and business
-            # date. Convert the combined units to pack-equivalents only once;
-            # rounding each partial purchase separately can incorrectly reject
-            # a customer who has not exceeded two complete pack-equivalents.
+            # Aggregate the customer's existing OTC pack-equivalents across
+            # all Schedule NONE products for this business date. For each drug,
+            # round its combined units to pack-equivalents once, not each sale.
             cursor.execute(
-                """SELECT COALESCE(SUM(dl.quantity), 0) AS prior_units
+                """SELECT dl.drug_id, SUM(dl.quantity) AS prior_units,
+                          d.pack_size
                    FROM dispenses dp
                    JOIN dispense_lines dl ON dl.dispense_id = dp.dispense_id
+                   JOIN drugs d ON d.drug_id = dl.drug_id
                    WHERE dp.customer_id = %s
                      AND dp.prescription_id IS NULL
-                     AND dl.drug_id = %s
+                     AND d.schedule = 'NONE'
                      AND dp.dispensed_at >= %s
-                     AND dp.dispensed_at < %s""",
-                (customer_id, drug_id, day_start, next_day),
+                     AND dp.dispensed_at < %s
+                   GROUP BY dl.drug_id, d.pack_size
+                   ORDER BY dl.drug_id""",
+                (customer_id, day_start, next_day),
             )
-            prior_units = int(cursor.fetchone()["prior_units"] or 0)
+            # mysql-connector may return SUM(integer_column) as Decimal.
+            # Normalize aggregate rows before passing them to strict helpers.
+            raw_prior_sales = cursor.fetchall()
+            prior_sales = [
+                {
+                    "drug_id": int(row["drug_id"]),
+                    "prior_units": int(row["prior_units"] or 0),
+                    "pack_size": int(row["pack_size"]),
+                }
+                for row in raw_prior_sales
+            ]
+            prior_units_by_drug = {
+                row["drug_id"]: row["prior_units"]
+                for row in prior_sales
+            }
+            prior_units = prior_units_by_drug.get(drug_id, 0)
+            prior_pack_equivalents = self.calculate_daily_pack_equivalents(prior_sales)
+            existing_current_drug_packs = (
+                self.calculate_pack_count(prior_units, pack_size)
+                if prior_units else 0
+            )
+            other_drug_packs = prior_pack_equivalents - existing_current_drug_packs
+            current_drug_packs_after_sale = self.calculate_pack_count(
+                prior_units + quantity, pack_size
+            )
             OperationalRulesService.validate_otc_sale(
                 schedule=drug["schedule"],
                 quantity_units=quantity,
                 pack_size=pack_size,
                 prior_units_today=prior_units,
                 has_valid_prescription=False,
+            )
+            OperationalRulesService.validate_otc_pack_limit(
+                prior_packs_today=other_drug_packs,
+                requested_packs=current_drug_packs_after_sale,
+                maximum_packs=2,
             )
 
             batch_rows = DispensingRepository.get_batches_for_update(cursor, drug_id)
