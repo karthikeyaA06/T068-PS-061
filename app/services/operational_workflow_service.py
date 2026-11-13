@@ -24,6 +24,21 @@ class OperationalWorkflowService:
             raise ValueError(f"{name} must be a positive integer.")
         return value
 
+    @staticmethod
+    def _has_pending_supplier_return_for_drug(cursor, drug_id):
+        """Return True if any batch for this drug has a pending supplier return."""
+        cursor.execute(
+            """SELECT EXISTS (
+                   SELECT 1
+                   FROM supplier_returns sr
+                   JOIN batches pending_batch ON pending_batch.batch_id = sr.batch_id
+                   WHERE pending_batch.drug_id = %s
+                     AND sr.status = 'PENDING'
+               ) AS has_pending_supplier_return""",
+            (drug_id,),
+        )
+        return bool(cursor.fetchone()["has_pending_supplier_return"])
+
     def process_customer_return(
         self, bill_line_id, quantity, unopened, returned_at=None
     ):
@@ -392,10 +407,17 @@ class OperationalWorkflowService:
 
             cursor.execute("SELECT drug_id, min_stock, pack_size FROM drugs WHERE is_active = TRUE ORDER BY drug_id")
             for drug in cursor.fetchall():
+                # BR-09 excludes the drug if ANY batch has a pending supplier
+                # return, including frozen batches. Keep this check separate from
+                # the active-stock aggregation so a frozen batch cannot be missed.
+                if self._has_pending_supplier_return_for_drug(cursor, drug["drug_id"]):
+                    continue
+
                 cursor.execute(
-                    """SELECT COALESCE(SUM(b.available_quantity - COALESCE(sr.reserved_quantity,0)),0) AS valid_stock,
-                              COALESCE(SUM(CASE WHEN sr.reserved_quantity > 0 THEN 1 ELSE 0 END),0) AS batches_with_pending_returns,
-                              MAX(CASE WHEN sr.reserved_quantity > 0 THEN 1 ELSE 0 END) AS has_pending_return
+                    """SELECT COALESCE(
+                              SUM(GREATEST(b.available_quantity - COALESCE(sr.reserved_quantity,0), 0)),
+                              0
+                           ) AS valid_stock
                        FROM batches b
                        LEFT JOIN (
                            SELECT batch_id, SUM(quantity) AS reserved_quantity
@@ -407,9 +429,6 @@ class OperationalWorkflowService:
                 )
                 stock_row = cursor.fetchone()
                 valid_stock = int(stock_row["valid_stock"] or 0)
-                has_pending = bool(stock_row["has_pending_return"])
-                if has_pending:
-                    continue
                 qty = OperationalRulesService.calculate_reorder_quantity(
                     valid_stock, int(drug["min_stock"]), int(drug["pack_size"]), False
                 )

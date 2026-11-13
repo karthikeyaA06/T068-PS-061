@@ -16,13 +16,15 @@ from decimal import Decimal
 from typing import Any, Callable, Iterable, Mapping, TextIO
 
 
-_DATE_FIELDS = {"dispense_date", "business_date"}
+_DATE_FIELDS = {"dispense_date", "business_date", "prescription_date", "as_of_date", "start_date", "end_date"}
 _DATETIME_FIELDS = {
     "sale_at",
     "returned_at",
     "requested_at",
     "completed_at",
     "recalled_at",
+    "start_at",
+    "end_at",
 }
 
 
@@ -182,10 +184,21 @@ def build_default_handlers() -> dict[str, Callable[..., Any]]:
     from app.services.dispensing_service import DispensingService
     from app.services.drug_service import DrugService
     from app.services.inventory_service import InventoryService
+    from app.services.master_data_service import MasterDataService
+    from app.services.prescription_service import PrescriptionService
     from app.services.operational_workflow_service import OperationalWorkflowService
     from app.services.otc_service import OTCSalesService
+    from app.services.reporting_service import ReportingService
 
+    master = MasterDataService()
+    prescriptions = PrescriptionService()
+    reports = ReportingService()
     return {
+        "register_supplier": lambda **p: master.register_supplier(**p),
+        "register_customer": lambda **p: master.register_customer(**p),
+        "register_doctor": lambda **p: master.register_doctor(**p),
+        "register_patient": lambda **p: master.register_patient(**p),
+        "create_prescription": lambda **p: prescriptions.create_prescription(**p),
         "register_drug": lambda **p: DrugService().register_drug(**p),
         "receive_batch": lambda **p: BatchService().receive_batch(**p),
         "get_fefo_batches": lambda **p: InventoryService().get_fefo_batches(**p),
@@ -199,4 +212,8 @@ def build_default_handlers() -> dict[str, Callable[..., Any]]:
         "recall_batch": lambda **p: OperationalWorkflowService().recall_batch(**p),
         "get_recall_violations": lambda recall_id: OperationalWorkflowService().get_recall_violations(recall_id),
         "run_end_of_day": lambda **p: OperationalWorkflowService().run_end_of_day(**p),
+        "get_stock_report": lambda **p: reports.get_stock_report(**p),
+        "get_h1_register_report": lambda **p: reports.get_h1_register_report(**p),
+        "get_x_register_report": lambda **p: reports.get_x_register_report(**p),
+        "get_inventory_movement_report": lambda **p: reports.get_inventory_movement_report(**p),
     }

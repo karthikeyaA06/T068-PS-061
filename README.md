@@ -1,6 +1,6 @@
 # PS-061 – Pharmacy Inventory Management System
 
-A Python and MySQL backend prototype for the PS-061 pharmacy inventory problem statement. The backend includes a JSON Lines (JSONL) command runner. Each non-empty input line is one command object; see `docs/command_file_format.md`. The command contract is a documented project interface and must still be compared with the faculty/evaluator sample if one is provided.
+A Python and MySQL backend prototype for the PS-061 pharmacy inventory problem statement. The backend includes a JSON Lines (JSONL) command runner. Each non-empty input line is one command object; see `docs/command_file_format.md`. Master-data and prescription-intake commands are available so the workflow can create suppliers, customers, doctors, patients and prescription lines before receiving and dispensing stock. The command contract is a documented project interface and must still be compared with the faculty/evaluator sample if one is provided.
 
 ## Technology
 
@@ -16,13 +16,15 @@ A Python and MySQL backend prototype for the PS-061 pharmacy inventory problem s
 app/
   database/       MySQL connection and SQL schema/migration files
   repositories/   Parameterized database queries
-  services/       Inventory, dispensing, billing and operational workflows
+  services/       Inventory, dispensing, billing, prescription intake and operational workflows
   commands/       JSONL validation and command dispatch
 docs/             Design document, decision log, diagrams and Week 3 evidence
 examples/         Read-only illustrative JSONL command file
-tests/            Automated unit tests
+tests/            Automated unit and command-contract tests
 run_*_demo.py     Manual service demonstrations
 run_commands.py   JSONL command-file runner
+run_mysql_acceptance_demo.py  Guarded synthetic MySQL acceptance demo
+prepare_mysql_test_schema.py  Generates the disposable test database schema
 verify_operational_schema.py  Read-only operational-schema check
 ```
 
@@ -62,7 +64,7 @@ From the repository root, with the virtual environment activated:
 python -m pytest -v
 ```
 
-**Updated package automated-test count: 107.** This count was reproduced in the isolated review environment; rerun the suite locally after copying the updated package. The test suite covers:
+**Updated package automated-test count: 139.** This count was reproduced in the isolated review environment; rerun the suite locally after copying the updated package. The test suite covers:
 
 - FEFO expiry-month conversion, eligibility cutoffs, ordering, tie-breaking and reserved supplier-return stock;
 - required dispensing quantity, pack rounding and partial-fill calculations;
@@ -115,7 +117,29 @@ The following script is read-only and checks for the operational tables and OTC-
 python verify_operational_schema.py
 ```
 
-The earlier terminal log confirmed the policy demo and 86 tests. The updated package adds command-contract, OTC aggregation-boundary and schema-contract tests; the isolated review run for this updated snapshot reports 107 passing tests. A previous attempt to run `verify_operational_schema.py` was mistyped, so run it separately to verify the current database schema.
+### Prepare a disposable MySQL test database
+
+Generate a single SQL script that creates the test schema in the correct migration order and explicitly targets `pharmacy_inventory_test`:
+
+```powershell
+python prepare_mysql_test_schema.py
+```
+
+Open the generated `pharmacy_inventory_test_schema.sql` in MySQL Workbench and execute it. The generated file is ignored by Git and should not be committed.
+
+### Guarded live-MySQL acceptance demonstration
+
+For database transaction checks, prepare a disposable `pharmacy_inventory_test` database using `docs/mysql_integration_runbook.md`. The acceptance script refuses to run unless `SELECT DATABASE()` returns exactly `pharmacy_inventory_test`:
+
+```powershell
+$env:DB_NAME = "pharmacy_inventory_test"
+python run_mysql_acceptance_demo.py
+Remove-Item Env:DB_NAME
+```
+
+This script creates synthetic supplier, customer, doctor, patient, drug, batch, prescription, dispense, bill, return, recall, write-off and reorder records. It leaves those synthetic records in the test database for inspection. It never cleans or deletes records automatically. Do not run it against the normal `pharmacy_inventory` database.
+
+The latest isolated review run for this snapshot reports 139 passing tests, successful Python compilation and a successful safe policy demo. Run `verify_operational_schema.py` and the guarded acceptance script separately against your local MySQL test database; this repository review cannot verify the state of that server.
 
 
 ## JSONL command-file interface
@@ -141,12 +165,14 @@ The code snapshot contains both **business-rule/policy helpers** and **database 
 ### Core application workflows present in code
 
 - Drug registration and substitution-group creation (`DrugService`).
+- Supplier, customer, doctor and patient master-data registration (`MasterDataService`).
+- Prescription intake with calculated prescription-line quantities and Schedule H/H1/X intake validation (`PrescriptionService`).
 - Supplier batch receiving and inventory receipt movements (`BatchService`).
 - FEFO eligibility, expiry-month handling, ordering and tie-breaking (`FEFOSelector` and `InventoryService`).
 - Prescription-line dispensing, batch allocation, partial-fill tracking and inventory movements (`DispensingService`).
 - Schedule validation calls and H1/X register insertion methods in the dispensing transaction (`PrescriptionComplianceService` and `DispensingRepository`).
 - GST-inclusive billing calculations and persisted bill/bill-line creation (`BillingService`).
-- OTC sale transaction path with daily quantity restriction and FEFO stock allocation (`OTCSalesService`).
+- OTC sale transaction path with a daily two-pack-equivalent cap aggregated across Schedule NONE products, FEFO stock allocation and the common dispense/bill ledger (`OTCSalesService`).
 - Same-group substitute selection in prescription dispensing when the prescribed brand has no eligible stock; prescribed and dispensed brands are retained (`DispensingService`).
 - Customer-return transaction that validates the original bill line and restores eligible quantity to its original batch (`OperationalWorkflowService.process_customer_return`).
 - Supplier-return request, reservation, completion and cancellation (`OperationalWorkflowService`).
@@ -171,4 +197,4 @@ See `docs/design_document.md` for BR-01 through BR-12, `docs/week3_test_matrix.m
 
 ## Week 3 submission statement
 
-The updated Week 3 snapshot has **107 automated tests passing in the isolated review environment** and a successful safe operational-policy demo. Core service methods for the listed inventory, dispensing, billing and operational workflows are present. Full live-MySQL end-to-end verification and comparison with the official command-file evaluator sample remain outstanding; they are not represented as complete in this README.
+The updated Week 3 snapshot has **139 automated tests passing in the isolated review environment** and a successful safe operational-policy demo. Core service methods for the listed inventory, dispensing, billing and operational workflows are present. Full live-MySQL end-to-end verification and comparison with the official command-file evaluator sample remain outstanding; they are not represented as complete in this README.

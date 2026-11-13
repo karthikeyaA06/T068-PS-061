@@ -21,7 +21,7 @@ It demonstrates:
 
 ## Important limitation
 
-The demo proves the behavior of database-independent policy helpers only. It does not prove that these rules are wired into MySQL transactions, stock restoration/freezing, audit movements, end-of-day reports or command-file processing. Those workflows must be described as pending until implemented and tested.
+The demo proves the behavior of database-independent policy helpers only. It does not prove that these rules are wired into MySQL transactions, stock restoration/freezing, audit movements or end-of-day reports. Use the JSONL runner and a disposable MySQL database for transaction tests.
 
 
 ## Operational database workflow integration
@@ -29,7 +29,7 @@ The demo proves the behavior of database-independent policy helpers only. It doe
 Before exercising the new persistent workflows, run `app/database/operational_schema.sql`
 after the existing schema files. Use a backup/disposable database for transaction tests.
 
-Available methods are documented in `README.md`: `OTCSalesService.sell`,
+The JSONL command runner can register suppliers, customers, doctors and patients and create prescription headers/lines. Available operational methods are documented in `README.md`: `OTCSalesService.sell`,
 `OperationalWorkflowService.process_customer_return`, `request_supplier_return`,
 `complete_supplier_return`, `cancel_supplier_return`, `recall_batch`,
 `get_recall_violations`, and `run_end_of_day`. These methods perform persistent

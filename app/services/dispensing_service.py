@@ -1,6 +1,6 @@
 
 from datetime import date, datetime, timedelta, time
-from decimal import Decimal, ROUND_CEILING, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP
 
 import mysql.connector
 
@@ -16,54 +16,31 @@ from app.services.compliance_service import (
     PrescriptionComplianceService
 )
 from app.services.operational_rules_service import OperationalRulesService
+from app.services.quantity_service import QuantityService
 
 
 class DispensingService:
     """FEFO dispensing with prescription compliance and registers."""
 
     @staticmethod
+    def rolling_window_days(schedule):
+        """Return the BR-11 history window for a prescription schedule.
+
+        H1 is limited over a rolling 30-day period; the general H/X limit
+        uses a rolling 90-day period (Schedule X has additional 7-day rules).
+        """
+        normalized = str(schedule).upper()
+        if normalized not in {"NONE", "H", "H1", "X"}:
+            raise ValueError("Invalid drug schedule.")
+        return 30 if normalized == "H1" else 90
+
+    @staticmethod
     def calculate_required_units(
-        dose_per_day,
-        days_supply,
-        pack_size,
-        sells_full_packs
+        dose_per_day, days_supply, pack_size, sells_full_packs
     ):
-        dose = Decimal(str(dose_per_day))
-
-        if not dose.is_finite() or dose <= 0:
-            raise ValueError("Dose per day must be a positive finite number.")
-
-        if (
-            isinstance(days_supply, bool)
-            or not isinstance(days_supply, int)
-            or days_supply <= 0
-        ):
-            raise ValueError("Days supply must be a positive integer.")
-
-        if (
-            isinstance(pack_size, bool)
-            or not isinstance(pack_size, int)
-            or pack_size <= 0
-        ):
-            raise ValueError("Pack size must be a positive integer.")
-
-        if not isinstance(sells_full_packs, bool):
-            raise ValueError("sells_full_packs must be boolean.")
-
-        raw_units = dose * Decimal(days_supply)
-
-        required = int(
-            raw_units.to_integral_value(
-                rounding=ROUND_CEILING
-            )
+        return QuantityService.required_units(
+            dose_per_day, days_supply, pack_size, sells_full_packs
         )
-
-        if sells_full_packs:
-            required = (
-                (required + pack_size - 1) // pack_size
-            ) * pack_size
-
-        return required
 
     def dispense_prescription_line(
         self,
@@ -402,8 +379,9 @@ class DispensingService:
 
             # 10. Check actual dispensed days against rolling limit.
 
+            rolling_days = self.rolling_window_days(schedule)
             window_start = datetime.combine(
-                dispense_date - timedelta(days=89),
+                dispense_date - timedelta(days=rolling_days - 1),
                 time.min
             )
 

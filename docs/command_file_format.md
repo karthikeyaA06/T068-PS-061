@@ -30,6 +30,11 @@ Each non-empty UTF-8 line must contain one JSON object:
 
 | Command | Required parameters | Effect |
 |---|---|---|
+| `register_supplier` | `supplier_name`; optional `contact_person`, `phone`, `email`, `address` | Creates supplier master data |
+| `register_customer` | `customer_name`; optional `phone`, `loyalty_member` | Creates customer and loyalty record |
+| `register_doctor` | `registration_number`, `doctor_name`; optional `is_active` | Creates doctor registration record |
+| `register_patient` | `patient_name`; optional `contact` | Creates patient record |
+| `create_prescription` | `doctor_id`, `patient_id`, `prescription_date`, `lines` | Creates prescription header and calculated quantity lines |
 | `register_drug` | `molecule`, `strength`, `dosage_form`, `brand_name`, `schedule`, `mrp`, `gst_rate`, `pack_size`, `min_stock`; optional `sells_full_packs`, `controlled_substance` | Writes drug master data |
 | `receive_batch` | `drug_id`, `supplier_id`, `batch_number`, `expiry_month` (`YYYY-MM`), `quantity`, `purchase_price`; optional `notes` | Adds stock and a receipt movement |
 | `get_fefo_batches` | `drug_id`, `dispense_date`, `days_supply` | Read-only FEFO query |
@@ -43,6 +48,25 @@ Each non-empty UTF-8 line must contain one JSON object:
 | `recall_batch` | `batch_id`, `reason`; optional `recalled_at` | Freezes a batch and records recall timestamp |
 | `get_recall_violations` | `recall_id` | Read-only query for post-recall dispensing rows |
 | `run_end_of_day` | `business_date` | Writes expiry write-offs and reorder suggestions; returns near-expiry alerts |
+
+## Master-data and prescription-intake examples
+
+The commands below are examples; use unique names/registration numbers in your database. Run each JSON object as one line in a UTF-8 `.jsonl` file. Use the IDs returned by the successful commands when preparing dependent records.
+
+```json
+{"command_id":"M001","command":"register_supplier","parameters":{"supplier_name":"Demo Supplier","phone":"9000000000"}}
+{"command_id":"M002","command":"register_customer","parameters":{"customer_name":"Demo Customer","phone":"9000000001","loyalty_member":true}}
+{"command_id":"M003","command":"register_doctor","parameters":{"registration_number":"DEMO-REG-001","doctor_name":"Demo Doctor"}}
+{"command_id":"M004","command":"register_patient","parameters":{"patient_name":"Demo Patient","contact":"9000000002"}}
+```
+
+After registering a drug and receiving an eligible batch, create a prescription using the returned doctor, patient and drug IDs:
+
+```json
+{"command_id":"P001","command":"create_prescription","parameters":{"doctor_id":1,"patient_id":1,"prescription_date":"2026-11-14","lines":[{"drug_id":1,"dose_per_day":"1.0","days_supply":10,"no_substitution":false}]}}
+```
+
+The IDs above are illustrative only. Do not assume they match existing database records. `create_prescription` calculates required units from dose, days, pack size and the drug's full-pack flag in a single transaction.
 
 ## Run the command file
 

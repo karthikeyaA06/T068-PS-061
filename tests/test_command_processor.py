@@ -76,11 +76,21 @@ def test_type_error_is_reported_as_invalid_parameters():
 def test_iso_date_and_datetime_parameters_are_converted():
     values = _parse_parameter_values({
         "dispense_date": "2026-11-06",
+        "prescription_date": "2026-11-05",
+        "start_date": "2026-11-01",
+        "end_date": "2026-11-06",
         "sale_at": "2026-11-06T10:15:00",
+        "start_at": "2026-11-06T09:00:00",
+        "end_at": "2026-11-06T18:00:00",
         "customer_id": 4,
     })
     assert values["dispense_date"] == date(2026, 11, 6)
+    assert values["prescription_date"] == date(2026, 11, 5)
+    assert values["start_date"] == date(2026, 11, 1)
+    assert values["end_date"] == date(2026, 11, 6)
     assert values["sale_at"] == datetime(2026, 11, 6, 10, 15)
+    assert values["start_at"] == datetime(2026, 11, 6, 9, 0)
+    assert values["end_at"] == datetime(2026, 11, 6, 18, 0)
     assert values["customer_id"] == 4
 
 
@@ -121,6 +131,11 @@ def test_stream_continues_after_bad_command_and_counts_errors():
 def test_default_command_map_exposes_only_supported_service_operations():
     handlers = build_default_handlers()
     assert {
+        "register_supplier",
+        "register_customer",
+        "register_doctor",
+        "register_patient",
+        "create_prescription",
         "register_drug",
         "receive_batch",
         "get_fefo_batches",
@@ -134,4 +149,8 @@ def test_default_command_map_exposes_only_supported_service_operations():
         "recall_batch",
         "get_recall_violations",
         "run_end_of_day",
+        "get_stock_report",
+        "get_h1_register_report",
+        "get_x_register_report",
+        "get_inventory_movement_report",
     }.issubset(handlers)

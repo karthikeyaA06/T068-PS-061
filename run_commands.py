@@ -21,6 +21,8 @@ def main() -> int:
     input_path = Path(args.input_file)
     if not input_path.is_file():
         parser.error(f"Input file does not exist: {input_path}")
+    if args.output and Path(args.output).resolve() == input_path.resolve():
+        parser.error("Input and output paths must be different; refusing to overwrite the command file.")
 
     processor = CommandProcessor(build_default_handlers())
     try:

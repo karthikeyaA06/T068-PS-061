@@ -9,12 +9,13 @@
 - OTC transaction path with daily two-pack cap, FEFO allocation and common dispense/bill ledger.
 - Generic substitution decision and dispensing path with same-group/same-schedule eligibility, MRP ceiling and both brand names retained.
 - Customer-return transaction, supplier-return reservation/completion/cancellation, recall freeze/violation lookup, expiry write-off and reorder suggestion workflow.
+- Supplier/customer/doctor/patient master-data registration and prescription header/line intake.
 - JSONL command runner with explicit command allow-list, typed date/time parameters, structured JSONL result/error records and per-line error isolation.
 - BR-to-test matrix, command file format, Week 3 report and completion/limitation records.
 
 ## Automated verification
 
-- Updated automated suite: **107 tests passed** in the isolated review environment.
+- Updated automated suite: **139 tests passed** in the isolated review environment.
 - Safe in-memory Week 3 policy demo completed successfully.
 - Command parser smoke test confirmed structured output and continuation after a malformed/unsupported command.
 - Static schema-contract tests passed. They inspect SQL text and do not connect to MySQL.
@@ -38,4 +39,4 @@ The first three checks do not mutate MySQL. The schema verifier connects to the 
 
 ## Submission wording
 
-This Week 3 snapshot contains implementation paths for BR-01 through BR-12, a documented JSONL command runner, a BR-to-test matrix, and 107 passing automated tests in the isolated review environment. It is ready to submit as a Week 3 progress package with the remaining MySQL integration and evaluator-compatibility checks disclosed. It should not be described as fully accepted until those remaining checks pass.
+This Week 3 snapshot contains implementation paths for BR-01 through BR-12, a documented JSONL command runner, a BR-to-test matrix, and 139 passing automated tests in the isolated review environment. It is ready to submit as a Week 3 progress package with the remaining MySQL integration and evaluator-compatibility checks disclosed. It should not be described as fully accepted until those remaining checks pass.

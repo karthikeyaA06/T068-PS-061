@@ -61,3 +61,16 @@ def test_required_units_rejects_invalid_inputs(
 
 def test_full_pack_requirement_is_rounded_for_exact_base_units():
     assert DispensingService.calculate_required_units(1, 10, 10, True) == 10
+
+
+@pytest.mark.parametrize(
+    "schedule,expected_days",
+    [("H1", 30), ("H", 90), ("X", 90), ("NONE", 90)],
+)
+def test_rolling_window_matches_schedule_limit(schedule, expected_days):
+    assert DispensingService.rolling_window_days(schedule) == expected_days
+
+
+def test_rolling_window_rejects_unknown_schedule():
+    with pytest.raises(ValueError, match="Invalid drug schedule"):
+        DispensingService.rolling_window_days("SCHEDULE_Z")

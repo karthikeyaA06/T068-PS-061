@@ -1,5 +1,22 @@
+# Python environments and caches
 .venv/
 __pycache__/
 *.py[cod]
-.env
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local secrets/configuration
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Generated disposable database schema
+pharmacy_inventory_test_schema.sql

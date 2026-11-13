@@ -3,7 +3,7 @@
 **Project:** Pharmacy Inventory with Batch Expiry, Schedule-H Control and Substitution  
 **Team:** T068  
 **Branch:** `main`  
-**Submission date:** 6 November 2026
+**Prepared for:** Week 3 submission
 
 ## 1. Week 3 objective
 
@@ -18,6 +18,7 @@ Week 3 focuses on implementing the business rules, covering the specified edge c
 - **Substitution:** same-group substitute selection, price ceiling and recording of prescribed/dispensed brands.
 - **Returns and stock operations:** customer-return validation and transaction method, supplier-return reservation/completion/cancellation, recall freezing and violation lookup, expiry write-off and reorder suggestion workflow.
 - **Compliance:** rolling supply and refill policy validators for the relevant schedules.
+- **Master-data and prescription intake:** supplier/customer/doctor/patient registration and prescription header/line creation.
 - **Command layer:** JSONL line parser, allow-listed command dispatch, ISO date/time conversion, structured result/error JSONL and per-line error isolation.
 - **Documentation:** design document, diagrams, decision log, business-rule test matrix, command-file format, completion status and demo guide.
 
@@ -28,10 +29,10 @@ The following checks passed in the isolated review environment:
 | Check | Result |
 |---|---|
 | Python compilation (`compileall`) | Passed |
-| Unit tests (`python -m pytest -q`) | **107 passed** |
+| Unit tests (`python -m pytest -q`) | **139 passed** |
 | Safe in-memory Week 3 demo (`python run_week3_rules_demo.py`) | Completed successfully |
 
-The review environment used a minimal MySQL connector import stub because it did not have a live MySQL server configured. Tests and the in-memory demo did not modify the user's database. Static schema-contract tests inspect SQL source text; they are not database integration tests. The user's earlier local run reported 86 passing tests; rerun the updated suite after copying the new command-layer files locally.
+The review environment used a minimal MySQL connector import stub because it did not have a live MySQL server configured. Tests and the in-memory demo did not modify the user's database. Static schema-contract tests inspect SQL source text; they are not database integration tests. The updated unit suite includes fake-connection transaction tests for prescription intake, but it does not connect to the user's live MySQL database. Rerun the complete suite locally after copying these changes.
 
 ## 4. Rule-to-test traceability
 
@@ -49,4 +50,4 @@ The following items remain before claiming complete Week 3 acceptance:
 
 ## 6. Submission statement
 
-This submission demonstrates substantial Week 3 implementation progress, a 107-test passing automated suite, and a safe operational-policy demo. It does **not** claim complete end-to-end MySQL integration or compatibility with the official command-file sample. Those items are explicitly listed as remaining validation work.
+This submission demonstrates substantial Week 3 implementation progress, a 139-test passing automated suite, and a safe operational-policy demo. It does **not** claim complete end-to-end MySQL integration or compatibility with the official command-file sample. Those items are explicitly listed as remaining validation work.

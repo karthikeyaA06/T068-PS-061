@@ -5,7 +5,7 @@
 - **BR-01:** FEFO selection, expiry-month end-date conversion, acute/chronic cutoffs and deterministic tie-breaking.
 - **BR-02:** Required-unit calculation, full-pack rounding and partial-fill tracking in prescription dispensing.
 - **BR-03:** Prescription/doctor/schedule validation plus H1/X register insert methods within the dispensing transaction.
-- **BR-04:** OTC MySQL sale path, same-customer/same-drug/day base-unit aggregation, two-pack validation, FEFO stock allocation and common dispense/bill ledger.
+- **BR-04:** OTC MySQL sale path, same-customer/business-day aggregation of per-product pack-equivalents across Schedule NONE drugs, two-pack validation, FEFO stock allocation and common dispense/bill ledger.
 - **BR-05:** Same-group/same-schedule substitute selection when no eligible prescribed-brand batch exists; selected and prescribed brands are recorded.
 - **BR-06:** GST-inclusive billing calculations, per-line GST back-calculation, discount selection and whole-rupee bill rounding.
 - **BR-07:** Date-relative near-expiry output and expired-batch write-off transaction at purchase cost.
@@ -13,13 +13,14 @@
 - **BR-09:** End-of-day valid-stock aggregation and persisted pack-rounded reorder suggestions; drugs with pending supplier returns are excluded.
 - **BR-10:** Pending supplier-return reservation/completion/cancellation, recall freeze, recall timestamp and post-recall violation query.
 - **BR-11:** Rolling days-supply query by substitution group plus 90-day/H1 30-day validators.
-- **BR-12:** Prescription age, Schedule X seven-day/no-refill and refill 80%-elapsed validation.
-- **Command layer:** JSONL line parser, explicit allow-list dispatch, ISO date/time conversion, structured JSONL responses and per-line error isolation.
+- **BR-12:** Prescription intake and dispensing validate doctor registration, prescription age, Schedule X seven-day/no-refill and refill 80%-elapsed rules.
+- **Master-data intake:** Supplier, customer, doctor and patient registration; prescription header/line creation with required-unit and full-pack calculation.
+- **Command layer:** JSONL line parser, explicit allow-list dispatch for master-data, prescription and operational operations, ISO date/time conversion, structured JSONL responses and per-line error isolation.
 
 ## Automated checks in the updated package
 
 - Python compilation passed for application, command, test and demo files.
-- **107 automated tests passed** in the isolated review environment.
+- **139 automated tests passed** in the isolated review environment.
 - `python run_week3_rules_demo.py` completed successfully; it is an in-memory policy demonstration and does not write to MySQL.
 - A JSONL parser/dispatch smoke check returned structured success/error rows and continued after an invalid command.
 
