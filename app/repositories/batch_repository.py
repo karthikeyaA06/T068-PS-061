@@ -92,30 +92,34 @@ class BatchRepository:
             )
         )
 
-
     @staticmethod
     def get_active_batches_for_drug(cursor, drug_id):
-        """Fetch all active batches with available stock."""
+        """Fetch active batches with unreserved stock."""
 
         query = """
             SELECT
-                batch_id,
-                batch_number,
-                expiry_month_start,
-                received_at,
+                b.batch_id,
+                b.batch_number,
+                b.expiry_month_start,
+                b.received_at,
                 b.available_quantity,
-                COALESCE(sr.reserved_quantity, 0) AS reserved_quantity,
+                COALESCE(sr.reserved_quantity, 0)
+                    AS reserved_quantity,
                 b.status
-            FROM batches b
+            FROM batches AS b
             LEFT JOIN (
-                SELECT batch_id, SUM(quantity) AS reserved_quantity
+                SELECT
+                    batch_id,
+                    SUM(quantity) AS reserved_quantity
                 FROM supplier_returns
                 WHERE status = 'PENDING'
                 GROUP BY batch_id
-            ) sr ON sr.batch_id = b.batch_id
+            ) AS sr
+                ON sr.batch_id = b.batch_id
             WHERE b.drug_id = %s
               AND b.status = 'ACTIVE'
-              AND b.available_quantity > COALESCE(sr.reserved_quantity, 0)
+              AND b.available_quantity >
+                  COALESCE(sr.reserved_quantity, 0)
             ORDER BY
                 b.expiry_month_start ASC,
                 b.received_at ASC,
