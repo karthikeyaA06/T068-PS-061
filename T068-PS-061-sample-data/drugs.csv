@@ -1,0 +1,121 @@
+drug_id,brand_name,group_id,molecule,strength,form,schedule,mrp,pack_size,gst_pct,full_pack_only,min_stock_units,controlled,manufacturer
+DRG-001,Zenvas 500 mg,GRP-01,Paracetamol,500 mg,TAB,NONE,37.00,15,12,false,45,false,Deccan Labs
+DRG-002,Birocin 500 mg,GRP-01,Paracetamol,500 mg,TAB,NONE,37.00,15,12,false,90,false,Narmada Healthcare
+DRG-003,Glenmet 500 mg,GRP-01,Paracetamol,500 mg,TAB,NONE,39.00,15,12,false,90,false,Narmada Healthcare
+DRG-004,Healtor 10 mg,GRP-02,Cetirizine,10 mg,TAB,NONE,20.00,10,12,false,30,false,Kaveri Pharma
+DRG-005,Rexmet 10 mg,GRP-02,Cetirizine,10 mg,TAB,NONE,20.00,10,12,false,60,false,Kaveri Pharma
+DRG-006,Unipro 10 mg,GRP-02,Cetirizine,10 mg,TAB,NONE,24.00,10,12,false,40,false,Malabar Generics
+DRG-007,Vitavas 21 g,GRP-03,Oral Rehydration Salts,21 g,SACHET,NONE,22.00,1,12,true,8,false,Narmada Healthcare
+DRG-008,Febran 21 g,GRP-03,Oral Rehydration Salts,21 g,SACHET,NONE,22.00,1,12,true,5,false,Narmada Healthcare
+DRG-009,Glenpan 21 g,GRP-03,Oral Rehydration Salts,21 g,SACHET,NONE,22.00,1,12,true,8,false,Deccan Labs
+DRG-010,Alkopan 170 ml,GRP-04,Antacid Suspension,170 ml,SYRUP,NONE,98.00,1,12,true,10,false,Sahyadri Life Sciences
+DRG-011,Primadex 170 ml,GRP-04,Antacid Suspension,170 ml,SYRUP,NONE,124.00,1,12,true,5,false,Malabar Generics
+DRG-012,Alkofen 170 ml,GRP-04,Antacid Suspension,170 ml,SYRUP,NONE,124.00,1,12,true,5,false,Malabar Generics
+DRG-013,Sunzol 500 mg,GRP-05,Vitamin C,500 mg,TAB,NONE,52.00,15,12,false,90,false,Malabar Generics
+DRG-014,Sunpan 500 mg,GRP-05,Vitamin C,500 mg,TAB,NONE,49.00,15,12,false,90,false,Narmada Healthcare
+DRG-015,Pyrecin 500 mg,GRP-05,Vitamin C,500 mg,TAB,NONE,41.00,15,12,false,60,false,Kaveri Pharma
+DRG-016,Sunlon 500 mg,GRP-06,Calcium + Vitamin D3,500 mg,TAB,NONE,144.00,15,12,false,45,false,Narmada Healthcare
+DRG-017,Novadex 500 mg,GRP-06,Calcium + Vitamin D3,500 mg,TAB,NONE,109.00,15,12,false,90,false,Deccan Labs
+DRG-018,Zenpro 500 mg,GRP-06,Calcium + Vitamin D3,500 mg,TAB,NONE,144.00,15,12,false,90,false,Malabar Generics
+DRG-019,Glenlin 500 mg,GRP-07,Amoxicillin,500 mg,CAP,H,120.00,10,12,false,50,false,Narmada Healthcare
+DRG-020,Sunran 500 mg,GRP-07,Amoxicillin,500 mg,CAP,H,106.00,10,12,false,60,false,Malabar Generics
+DRG-021,Curapan 500 mg,GRP-07,Amoxicillin,500 mg,CAP,H,98.00,10,12,false,30,false,Kaveri Pharma
+DRG-022,Neopro 500 mg,GRP-08,Azithromycin,500 mg,TAB,H,83.00,3,12,true,18,false,Narmada Healthcare
+DRG-023,Univas 500 mg,GRP-08,Azithromycin,500 mg,TAB,H,66.00,3,12,true,15,false,Malabar Generics
+DRG-024,Healfen 500 mg,GRP-08,Azithromycin,500 mg,TAB,H,78.00,3,12,true,18,false,Narmada Healthcare
+DRG-025,Calmet 500 mg,GRP-09,Metformin,500 mg,TAB,H,38.00,15,12,false,75,false,Malabar Generics
+DRG-026,Zendex 500 mg,GRP-09,Metformin,500 mg,TAB,H,46.00,15,12,false,75,false,Malabar Generics
+DRG-027,Medilin 500 mg,GRP-09,Metformin,500 mg,TAB,H,46.00,15,12,false,90,false,Kaveri Pharma
+DRG-028,Vitalon 5 mg,GRP-10,Amlodipine,5 mg,TAB,H,56.00,15,12,false,75,false,Kaveri Pharma
+DRG-029,Curaran 5 mg,GRP-10,Amlodipine,5 mg,TAB,H,56.00,15,12,false,60,false,Malabar Generics
+DRG-030,Pyrezid 5 mg,GRP-10,Amlodipine,5 mg,TAB,H,44.00,15,12,false,90,false,Narmada Healthcare
+DRG-031,Glenlon 10 mg,GRP-11,Atorvastatin,10 mg,TAB,H,82.00,15,12,false,60,false,Deccan Labs
+DRG-032,Zencin 10 mg,GRP-11,Atorvastatin,10 mg,TAB,H,82.00,15,12,false,75,false,Sahyadri Life Sciences
+DRG-033,Neonol 10 mg,GRP-11,Atorvastatin,10 mg,TAB,H,96.00,15,12,false,90,false,Deccan Labs
+DRG-034,Glentor 40 mg,GRP-12,Pantoprazole,40 mg,TAB,H,146.00,15,12,false,60,false,Narmada Healthcare
+DRG-035,Feblin 40 mg,GRP-12,Pantoprazole,40 mg,TAB,H,146.00,15,12,false,60,false,Deccan Labs
+DRG-036,Sunlin 40 mg,GRP-12,Pantoprazole,40 mg,TAB,H,160.00,15,12,false,60,false,Narmada Healthcare
+DRG-037,Curalin 40 mg,GRP-13,Telmisartan,40 mg,TAB,H,102.00,15,12,false,45,false,Malabar Generics
+DRG-038,Febnol 40 mg,GRP-13,Telmisartan,40 mg,TAB,H,120.00,15,12,false,75,false,Kaveri Pharma
+DRG-039,Pyrefen 40 mg,GRP-13,Telmisartan,40 mg,TAB,H,130.00,15,12,false,75,false,Sahyadri Life Sciences
+DRG-040,Healvas 50 mg,GRP-14,Losartan,50 mg,TAB,H,75.00,15,12,false,90,false,Malabar Generics
+DRG-041,Alkocin 50 mg,GRP-14,Losartan,50 mg,TAB,H,81.00,15,12,false,60,false,Narmada Healthcare
+DRG-042,Suntor 50 mg,GRP-14,Losartan,50 mg,TAB,H,95.00,15,12,false,75,false,Malabar Generics
+DRG-043,Birotor 10 mg,GRP-15,Montelukast,10 mg,TAB,H,201.00,10,12,false,30,false,Narmada Healthcare
+DRG-044,Arisnol 10 mg,GRP-15,Montelukast,10 mg,TAB,H,152.00,10,12,false,40,false,Kaveri Pharma
+DRG-045,Caldex 10 mg,GRP-15,Montelukast,10 mg,TAB,H,201.00,10,12,false,40,false,Malabar Generics
+DRG-046,Pyremox 50 mcg,GRP-16,Levothyroxine,50 mcg,TAB,H,171.00,100,5,true,400,false,Narmada Healthcare
+DRG-047,Neomox 50 mcg,GRP-16,Levothyroxine,50 mcg,TAB,H,171.00,100,5,true,400,false,Malabar Generics
+DRG-048,Vitalin 50 mcg,GRP-16,Levothyroxine,50 mcg,TAB,H,161.00,100,5,true,600,false,Kaveri Pharma
+DRG-049,Arispan 2 mg,GRP-17,Glimepiride,2 mg,TAB,H,97.00,15,12,false,75,false,Deccan Labs
+DRG-050,Vitadex 2 mg,GRP-17,Glimepiride,2 mg,TAB,H,113.00,15,12,false,90,false,Sahyadri Life Sciences
+DRG-051,Healmox 2 mg,GRP-17,Glimepiride,2 mg,TAB,H,105.00,15,12,false,90,false,Malabar Generics
+DRG-052,Zenfen 50 mg,GRP-18,Metoprolol,50 mg,TAB,H,71.00,15,12,false,75,false,Kaveri Pharma
+DRG-053,Curator 50 mg,GRP-18,Metoprolol,50 mg,TAB,H,53.00,15,12,false,45,false,Malabar Generics
+DRG-054,Sanolin 50 mg,GRP-18,Metoprolol,50 mg,TAB,H,71.00,15,12,false,60,false,Kaveri Pharma
+DRG-055,Primamet 4 mg,GRP-19,Ondansetron,4 mg,TAB,H,44.00,10,12,false,50,false,Narmada Healthcare
+DRG-056,Alkozol 4 mg,GRP-19,Ondansetron,4 mg,TAB,H,55.00,10,12,false,40,false,Kaveri Pharma
+DRG-057,Biroran 4 mg,GRP-19,Ondansetron,4 mg,TAB,H,48.00,10,12,false,40,false,Narmada Healthcare
+DRG-058,Rexcin 50 mg,GRP-20,Diclofenac,50 mg,TAB,H,30.00,10,12,false,40,false,Kaveri Pharma
+DRG-059,Vitazid 50 mg,GRP-20,Diclofenac,50 mg,TAB,H,32.00,10,12,false,40,false,Kaveri Pharma
+DRG-060,Calzol 50 mg,GRP-20,Diclofenac,50 mg,TAB,H,30.00,10,12,false,40,false,Kaveri Pharma
+DRG-061,Sunvas 10 mg,GRP-21,Prednisolone,10 mg,TAB,H,26.00,10,12,false,30,false,Sahyadri Life Sciences
+DRG-062,Sanomox 10 mg,GRP-21,Prednisolone,10 mg,TAB,H,26.00,10,12,false,50,false,Kaveri Pharma
+DRG-063,Pyrelin 10 mg,GRP-21,Prednisolone,10 mg,TAB,H,26.00,10,12,false,60,false,Kaveri Pharma
+DRG-064,Calzid 200 mg,GRP-22,Cefixime,200 mg,TAB,H,109.00,10,12,false,30,false,Sahyadri Life Sciences
+DRG-065,Zenzid 200 mg,GRP-22,Cefixime,200 mg,TAB,H,144.00,10,12,false,50,false,Sahyadri Life Sciences
+DRG-066,Healcin 200 mg,GRP-22,Cefixime,200 mg,TAB,H,144.00,10,12,false,30,false,Malabar Generics
+DRG-067,Sanocin 500 mg,GRP-23,Ciprofloxacin,500 mg,TAB,H,61.00,10,12,false,60,false,Malabar Generics
+DRG-068,Sunpro 500 mg,GRP-23,Ciprofloxacin,500 mg,TAB,H,66.00,10,12,false,60,false,Sahyadri Life Sciences
+DRG-069,Primanol 500 mg,GRP-23,Ciprofloxacin,500 mg,TAB,H,81.00,10,12,false,60,false,Kaveri Pharma
+DRG-070,Rexran 100 mg,GRP-24,Doxycycline,100 mg,CAP,H,58.00,10,12,false,50,false,Kaveri Pharma
+DRG-071,Rexzol 100 mg,GRP-24,Doxycycline,100 mg,CAP,H,63.00,10,12,false,50,false,Narmada Healthcare
+DRG-072,Sanotor 100 mg,GRP-24,Doxycycline,100 mg,CAP,H,67.00,10,12,false,30,false,Kaveri Pharma
+DRG-073,Medicin 100 mcg,GRP-25,Salbutamol Inhaler,100 mcg,INHALER,H,132.00,1,12,true,5,false,Kaveri Pharma
+DRG-074,Neofen 100 mcg,GRP-25,Salbutamol Inhaler,100 mcg,INHALER,H,155.00,1,12,true,10,false,Sahyadri Life Sciences
+DRG-075,Alkomox 100 mcg,GRP-25,Salbutamol Inhaler,100 mcg,INHALER,H,155.00,1,12,true,8,false,Malabar Generics
+DRG-076,Aristor 100 IU/ml,GRP-26,Insulin Glargine,100 IU/ml,PEN,H,886.00,1,5,true,10,false,Deccan Labs
+DRG-077,Glennol 100 IU/ml,GRP-26,Insulin Glargine,100 IU/ml,PEN,H,1000.00,1,5,true,10,false,Narmada Healthcare
+DRG-078,Vitazol 100 IU/ml,GRP-26,Insulin Glargine,100 IU/ml,PEN,H,754.00,1,5,true,5,false,Kaveri Pharma
+DRG-079,Pyrepan 10 mg,GRP-27,Rosuvastatin,10 mg,TAB,H,205.00,15,12,false,90,false,Malabar Generics
+DRG-080,Alkozid 10 mg,GRP-27,Rosuvastatin,10 mg,TAB,H,164.00,15,12,false,45,false,Narmada Healthcare
+DRG-081,Sanonol 10 mg,GRP-27,Rosuvastatin,10 mg,TAB,H,217.00,15,12,false,45,false,Deccan Labs
+DRG-082,Uninol 75 mg,GRP-28,Clopidogrel,75 mg,TAB,H,103.00,15,12,false,60,false,Malabar Generics
+DRG-083,Primazol 75 mg,GRP-28,Clopidogrel,75 mg,TAB,H,103.00,15,12,false,75,false,Sahyadri Life Sciences
+DRG-084,Curavas 75 mg,GRP-28,Clopidogrel,75 mg,TAB,H,112.00,15,12,false,90,false,Malabar Generics
+DRG-085,Glenzol 0.25 mg,GRP-29,Alprazolam,0.25 mg,TAB,H1,37.00,15,12,false,75,true,Deccan Labs
+DRG-086,Medipro 0.25 mg,GRP-29,Alprazolam,0.25 mg,TAB,H1,37.00,15,12,false,60,true,Malabar Generics
+DRG-087,Pyrevas 0.25 mg,GRP-29,Alprazolam,0.25 mg,TAB,H1,39.00,15,12,false,90,true,Kaveri Pharma
+DRG-088,Medizid 10 mg,GRP-30,Zolpidem,10 mg,TAB,H1,92.00,10,12,false,50,true,Narmada Healthcare
+DRG-089,Vitamox 10 mg,GRP-30,Zolpidem,10 mg,TAB,H1,112.00,10,12,false,30,true,Kaveri Pharma
+DRG-090,Alkonol 10 mg,GRP-30,Zolpidem,10 mg,TAB,H1,99.00,10,12,false,60,true,Narmada Healthcare
+DRG-091,Medifen 50 mg,GRP-31,Tramadol,50 mg,TAB,H1,54.00,10,12,false,30,true,Deccan Labs
+DRG-092,Arisvas 50 mg,GRP-31,Tramadol,50 mg,TAB,H1,74.00,10,12,false,50,true,Sahyadri Life Sciences
+DRG-093,Calran 50 mg,GRP-31,Tramadol,50 mg,TAB,H1,74.00,10,12,false,40,true,Deccan Labs
+DRG-094,Rexpan 200 mg,GRP-32,Cefpodoxime,200 mg,TAB,H1,170.00,10,12,false,50,true,Sahyadri Life Sciences
+DRG-095,Neolin 200 mg,GRP-32,Cefpodoxime,200 mg,TAB,H1,136.00,10,12,false,30,true,Narmada Healthcare
+DRG-096,Unilin 200 mg,GRP-32,Cefpodoxime,200 mg,TAB,H1,148.00,10,12,false,40,true,Narmada Healthcare
+DRG-097,Sanofen 500 mg,GRP-33,Levofloxacin,500 mg,TAB,H1,77.00,10,12,false,40,true,Kaveri Pharma
+DRG-098,Pyremet 500 mg,GRP-33,Levofloxacin,500 mg,TAB,H1,84.00,10,12,false,30,true,Sahyadri Life Sciences
+DRG-099,Rextor 500 mg,GRP-33,Levofloxacin,500 mg,TAB,H1,97.00,10,12,false,40,true,Narmada Healthcare
+DRG-100,Neozid 0.5 mg,GRP-34,Clonazepam,0.5 mg,TAB,H1,46.00,10,12,false,60,true,Kaveri Pharma
+DRG-101,Vitacin 0.5 mg,GRP-34,Clonazepam,0.5 mg,TAB,H1,46.00,10,12,false,30,true,Sahyadri Life Sciences
+DRG-102,Unilon 0.5 mg,GRP-34,Clonazepam,0.5 mg,TAB,H1,50.00,10,12,false,30,true,Narmada Healthcare
+DRG-103,Primapro 400 mg,GRP-35,Moxifloxacin,400 mg,TAB,H1,143.00,5,12,false,25,true,Kaveri Pharma
+DRG-104,Febzol 400 mg,GRP-35,Moxifloxacin,400 mg,TAB,H1,112.00,5,12,false,30,true,Sahyadri Life Sciences
+DRG-105,Lyfmox 400 mg,GRP-35,Moxifloxacin,400 mg,TAB,H1,132.00,5,12,false,30,true,Narmada Healthcare
+DRG-106,Glenvas 75 mg,GRP-36,Pregabalin,75 mg,CAP,H1,168.00,15,12,false,90,true,Malabar Generics
+DRG-107,Curazol 75 mg,GRP-36,Pregabalin,75 mg,CAP,H1,181.00,15,12,false,60,true,Sahyadri Life Sciences
+DRG-108,Primalin 75 mg,GRP-36,Pregabalin,75 mg,CAP,H1,193.00,15,12,false,90,true,Deccan Labs
+DRG-109,Neodex 10 mg,GRP-37,Morphine Sulphate,10 mg,TAB,X,256.00,10,12,false,40,true,Malabar Generics
+DRG-110,Vitamet 10 mg,GRP-37,Morphine Sulphate,10 mg,TAB,X,227.00,10,12,false,50,true,Deccan Labs
+DRG-111,Glenpro 10 mg,GRP-37,Morphine Sulphate,10 mg,TAB,X,210.00,10,12,false,40,true,Sahyadri Life Sciences
+DRG-112,Zenpan 10 mg,GRP-38,Methylphenidate,10 mg,TAB,X,260.00,10,12,false,60,true,Malabar Generics
+DRG-113,Glenran 10 mg,GRP-38,Methylphenidate,10 mg,TAB,X,260.00,10,12,false,60,true,Sahyadri Life Sciences
+DRG-114,Glenfen 10 mg,GRP-38,Methylphenidate,10 mg,TAB,X,239.00,10,12,false,60,true,Sahyadri Life Sciences
+DRG-115,Arisran 0.2 mg,GRP-39,Buprenorphine,0.2 mg,TAB,X,175.00,10,12,false,30,true,Sahyadri Life Sciences
+DRG-116,Birolin 0.2 mg,GRP-39,Buprenorphine,0.2 mg,TAB,X,205.00,10,12,false,60,true,Sahyadri Life Sciences
+DRG-117,Pyrenol 0.2 mg,GRP-39,Buprenorphine,0.2 mg,TAB,X,175.00,10,12,false,30,true,Sahyadri Life Sciences
+DRG-118,Primazid 25 mg,GRP-40,Pentazocine,25 mg,TAB,X,86.00,10,12,false,40,true,Narmada Healthcare
+DRG-119,Neovas 25 mg,GRP-40,Pentazocine,25 mg,TAB,X,69.00,10,12,false,60,true,Deccan Labs
+DRG-120,Biropro 25 mg,GRP-40,Pentazocine,25 mg,TAB,X,69.00,10,12,false,50,true,Kaveri Pharma

@@ -198,3 +198,5 @@ See `docs/design_document.md` for BR-01 through BR-12, `docs/week3_test_matrix.m
 ## Week 3 submission statement
 
 The updated Week 3 snapshot has **139 automated tests passing in the isolated review environment** and a successful safe operational-policy demo. Core service methods for the listed inventory, dispensing, billing and operational workflows are present. Full live-MySQL end-to-end verification and comparison with the official command-file evaluator sample remain outstanding; they are not represented as complete in this README.
+
+python run_official_pack.py --data-dir .\T068-PS-061-sample-data --output-dir .\official_sample_outputs
