@@ -20,3 +20,5 @@ dist/
 
 # Generated disposable database schema
 pharmacy_inventory_test_schema.sql
+# Generated output CSVs from the official PS-061 sample data pack
+official_sample_outputs/

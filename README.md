@@ -199,4 +199,35 @@ See `docs/design_document.md` for BR-01 through BR-12, `docs/week3_test_matrix.m
 
 The updated Week 3 snapshot has **139 automated tests passing in the isolated review environment** and a successful safe operational-policy demo. Core service methods for the listed inventory, dispensing, billing and operational workflows are present. Full live-MySQL end-to-end verification and comparison with the official command-file evaluator sample remain outstanding; they are not represented as complete in this README.
 
+
+## Official T068-PS-061 Sample Pack
+
+The team-specific input data is available in `T068-PS-061-sample-data/`. It contains CSV master files and a pipe-delimited `commands.txt`.
+
+**Important:** `run_commands.py` is the project's JSONL command interface. The official sample pack uses `COMMAND|arg1|arg2|...` lines, so use the separate sample-pack adapter:
+
+```powershell
 python run_official_pack.py --data-dir .\T068-PS-061-sample-data --output-dir .\official_sample_outputs
+```
+
+The adapter generates six evaluator-format CSV files:
+
+- `dispense_lines.csv`
+- `bills.csv`
+- `bill_totals.csv`
+- `registers.csv`
+- `eod.csv`
+- `violations.csv`
+
+The adapter processes commands in order and simulates the supplied sample-pack workflows in memory. It does not write these operations to MySQL. The MySQL-backed services and `run_mysql_acceptance_demo.py` are a separate persistence and integration demonstration.
+
+### Official Sample Pack Validation
+
+Latest local validation results:
+
+- Automated test suite: **147 tests passed**.
+- Focused MySQL acceptance smoke test: **12 checks passed** against the disposable test database.
+- Official sample pack output audit: **32/32 checks passed**.
+- Six CSV output files generated successfully.
+
+**Limitation:** The 32 checks validate the supplied planted scenarios and output structure. Field-for-field comparison with the faculty's hidden expected output remains unverified.
