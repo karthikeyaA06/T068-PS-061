@@ -1,233 +1,514 @@
-# PS-061 – Pharmacy Inventory Management System
+# T068-PS-061 – Pharmacy Inventory Management System
 
-A Python and MySQL backend prototype for the PS-061 pharmacy inventory problem statement. The backend includes a JSON Lines (JSONL) command runner. Each non-empty input line is one command object; see `docs/command_file_format.md`. Master-data and prescription-intake commands are available so the workflow can create suppliers, customers, doctors, patients and prescription lines before receiving and dispensing stock. The command contract is a documented project interface and must still be compared with the faculty/evaluator sample if one is provided.
+## 1\. Project Overview
 
-## Technology
+The **Pharmacy Inventory Management System** is a Python-based application developed for problem statement PS-061. It is designed to support pharmacy inventory operations, medicine dispensing, billing, prescription validation and stock management.
 
-- Python 3.10+
-- MySQL 8.0+
-- `mysql-connector-python`
-- `python-dotenv`
-- `pytest`
+The system includes business rules and workflows for:
 
-## Project structure
+* Medicine and supplier management
+* Batch receiving and stock tracking
+* FEFO (First Expiry, First Out) inventory selection
+* Prescription validation and medicine dispensing
+* Partial dispensing and pending quantities
+* Billing and GST calculations
+* Over-the-counter (OTC) sales
+* Medicine substitution
+* Customer returns and supplier returns
+* Medicine recalls and compliance tracking
+* Expiry management, stock write-offs and reorder suggestions
+* End-of-day inventory reporting
 
-```text
-app/
-  database/       MySQL connection and SQL schema/migration files
-  repositories/   Parameterized database queries
-  services/       Inventory, dispensing, billing, prescription intake and operational workflows
-  commands/       JSONL validation and command dispatch
-docs/             Design document, decision log, diagrams and Week 3 evidence
-examples/         Read-only illustrative JSONL command file
-tests/            Automated unit and command-contract tests
-run_*_demo.py     Manual service demonstrations
-run_commands.py   JSONL command-file runner
-run_mysql_acceptance_demo.py  Guarded synthetic MySQL acceptance demo
-prepare_mysql_test_schema.py  Generates the disposable test database schema
-verify_operational_schema.py  Read-only operational-schema check
-```
+The repository contains two separate execution paths:
 
-## Local setup
+1. **Official sample-pack execution:** Processes the supplied PS-061 sample data and generates evaluator-format CSV reports.
+2. **MySQL-backed application:** Provides database-oriented services and a JSONL command interface for application workflows.
 
-1. Install Python 3.10+ and MySQL 8.0+.
-2. Create and activate a virtual environment:
+These execution paths are separate. The official sample-pack adapter processes its supplied commands in memory and does not persist those operations to MySQL.
 
-   ```powershell
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   ```
+\---
 
-3. Install dependencies:
+## 2\. Technology Stack
 
-   ```powershell
-   python -m pip install -r requirements.txt
-   ```
+|Technology|Purpose|
+|-|-|
+|Python 3.10+|Application development|
+|MySQL 8.0+|Persistent database storage|
+|mysql-connector-python|Python–MySQL connectivity|
+|python-dotenv|Environment configuration|
+|pytest|Automated testing|
+|Git and GitHub|Version control and project hosting|
 
-4. Copy `.env.example` to `.env` and enter your local MySQL connection settings. Keep the real `.env` local; never commit or submit it. The repository should contain only `.env.example` with placeholder values.
-5. Create/select the `pharmacy_inventory` database, then execute the SQL files in MySQL Workbench in this order:
-   - `app/database/schema.sql`
-   - `app/database/dispensing_schema.sql`
-   - `app/database/billing_schema.sql`
-   - `app/database/compliance_schema.sql`
-   - `app/database/operational_schema.sql`
+\---
 
-   The operational migration contains `ALTER TABLE` statements as well as table creation. Back up an existing database before applying it, and apply the migration only once unless its statements have been made idempotent. Do not apply a fresh-install schema over an existing database without checking the current schema first.
-
-6. Confirm that the database name in `.env` is `pharmacy_inventory`, or change `DB_NAME` to match your local database.
-
-## Run automated tests
-
-From the repository root, with the virtual environment activated:
-
-```powershell
-python -m pytest -v
-```
-
-**Updated package automated-test count: 139.** This count was reproduced in the isolated review environment; rerun the suite locally after copying the updated package. The test suite covers:
-
-- FEFO expiry-month conversion, eligibility cutoffs, ordering, tie-breaking and reserved supplier-return stock;
-- required dispensing quantity, pack rounding and partial-fill calculations;
-- prescription date, doctor, Schedule H/H1/X, rolling supply and refill validation;
-- GST-inclusive billing, discount selection, GST back-calculation and whole-rupee rounding;
-- OTC limits, substitute eligibility, customer-return conditions, reorder calculations, write-off valuation, supplier-return eligibility and recall timestamps.
-
-The tests include unit/helper, command-contract and static schema-contract checks. They do **not** establish that every transaction works end-to-end against a live MySQL database.
-
-## Demonstrations
-
-### Safe Week 3 policy demonstration
-
-This demonstration uses in-memory sample values and does not write to MySQL:
-
-```powershell
-python run_week3_rules_demo.py
-```
-
-Expected final message:
+## 3\. Project Structure
 
 ```text
-Week 3 operational helper demo completed successfully.
+T068-PS-061/
+│
+├── app/
+│   ├── database/
+│   │   ├── schema.sql
+│   │   ├── dispensing\_schema.sql
+│   │   ├── billing\_schema.sql
+│   │   ├── compliance\_schema.sql
+│   │   └── operational\_schema.sql
+│   │
+│   ├── repositories/
+│   │   └── Database query and persistence operations
+│   │
+│   ├── services/
+│   │   └── Inventory, dispensing, billing,
+│   │       prescription and operational services
+│   │
+│   └── commands/
+│       └── JSONL command validation and dispatch
+│
+├── docs/
+│   ├── design\_document.pdf
+│   ├── design\_document.md
+│   ├── decision\_log.md
+│   ├── command\_file\_format.md
+│   └── Additional project documentation
+│
+├── examples/
+│   └── Illustrative JSONL command files
+│
+├── tests/
+│   └── Automated unit and command-contract tests
+│
+├── T068-PS-061-sample-data/
+│   └── Official sample-pack input files
+│
+├── official\_sample\_outputs/
+│   └── Generated CSV reports (created when executed)
+│
+├── run\_official\_pack.py
+├── validate\_official\_pack\_outputs.py
+├── run\_commands.py
+├── run\_mysql\_acceptance\_demo.py
+├── prepare\_mysql\_test\_schema.py
+├── verify\_operational\_schema.py
+│
+├── requirements.txt
+├── .env.example
+├── .gitignore
+└── README.md
 ```
 
-### Database-backed demonstrations
+\---
 
-The following scripts connect to the configured MySQL database and may create or modify persistent records:
+## 4\. Quick Start – Official PS-061 Sample Pack
+
+This is the primary execution path for processing the supplied official sample data.
+
+### Requirements
+
+* Python 3.10 or later
+* Git
+* The `T068-PS-061-sample-data` folder included in the repository
+
+### Step 1: Clone the repository
 
 ```powershell
-python test_db_connection.py
-python run_drug_registration_demo.py
-python run_batch_receiving_demo.py
-python run_fefo_database_demo.py
-python run_dispensing_demo.py
-python run_partial_dispensing_demo.py
+git clone https://github.com/karthikeyaA06/T068-PS-061.git
+
+cd T068-PS-061
 ```
 
-Run database-writing demos only against a disposable/demo database or after reviewing their fixed IDs, quantities and batch numbers. Do not repeatedly run them against a shared database. The billing demo requires an existing dispense ID:
+### Step 2: Create a virtual environment
 
 ```powershell
-python run_billing_demo.py <dispense_id>
+python -m venv .venv
 ```
 
-### Operational schema verification
-
-The following script is read-only and checks for the operational tables and OTC-related nullable columns:
+Activate it:
 
 ```powershell
-python verify_operational_schema.py
+.\\.venv\\Scripts\\Activate.ps1
+```
+
+### Step 3: Install dependencies
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+### Step 4: Execute the official sample pack
+
+```powershell
+python run\_official\_pack.py --data-dir .\\T068-PS-061-sample-data --output-dir .\\official\_sample\_outputs
+```
+
+The program reads the sample-pack master data and processes the commands in sequence.
+
+It generates six CSV output files.
+
+### Step 5: Validate the generated outputs
+
+```powershell
+python validate\_official\_pack\_outputs.py --data-dir .\\T068-PS-061-sample-data --output-dir .\\official\_sample\_outputs
+```
+
+The validator checks output headers, required fields and the expected planted business scenarios.
+
+### Step 6: Run the automated test suite
+
+```powershell
+python -m pytest -q
+```
+
+\---
+
+## 5\. Generated Output Files
+
+The official sample-pack execution generates the following CSV files:
+
+|File|Description|
+|-|-|
+|`dispense\_lines.csv`|Medicine dispensing details, quantities and line statuses|
+|`bills.csv`|Individual billing records|
+|`bill\_totals.csv`|Bill-level totals and calculated amounts|
+|`registers.csv`|Relevant prescription and controlled-medicine register records|
+|`eod.csv`|End-of-day inventory activities and records|
+|`violations.csv`|Recorded compliance and recall-related violations|
+
+These files are generated inside the `official\_sample\_outputs/` directory.
+
+**Note:** The generated output directory is ignored by Git. Run the official sample-pack command to recreate the output files locally.
+
+\---
+
+## 6\. Business Rules and Functionalities
+
+### 6.1 Inventory Management
+
+* Maintains medicine and batch information.
+* Tracks received, available and reserved quantities.
+* Supports stock receiving and inventory movements.
+* Uses expiry information when determining stock eligibility.
+
+### 6.2 FEFO Inventory Selection
+
+The system uses the FEFO (First Expiry, First Out) principle.
+
+Eligible medicine batches are selected according to expiry priority, with deterministic tie-breaking.
+
+The implementation also considers expiry eligibility and stock reserved for supplier returns.
+
+### 6.3 Prescription Validation
+
+Prescription-related checks include:
+
+* Prescription date validation
+* Doctor registration validation
+* Schedule H, H1 and X restrictions
+* Prescription supply limits
+* Rolling supply limits
+* Refill eligibility
+
+### 6.4 Medicine Dispensing
+
+The dispensing workflow supports:
+
+* Prescription-line processing
+* Batch allocation
+* Quantity and pack-size calculations
+* Partial dispensing
+* Pending quantities when stock is insufficient
+* Medicine substitution under applicable conditions
+
+### 6.5 Billing
+
+The billing functionality includes:
+
+* Bill and bill-line creation
+* GST calculations
+* Discount selection
+* GST back-calculation
+* Whole-rupee rounding
+
+Financial calculations use decimal-based arithmetic.
+
+### 6.6 OTC Sales
+
+The OTC workflow includes:
+
+* OTC eligibility validation
+* Daily customer purchase limits
+* Pack-equivalent calculations
+* FEFO stock allocation
+* Billing and inventory recording
+
+### 6.7 Returns and Supplier Operations
+
+The operational workflows include:
+
+* Customer return eligibility checks
+* Validation against original bill information
+* Supplier-return requests
+* Stock reservation for pending supplier returns
+* Supplier-return completion and cancellation
+
+### 6.8 Recall and Expiry Management
+
+The system includes:
+
+* Medicine recall recording
+* Stock freezing for recalled batches
+* Post-recall dispensing violation checks
+* Near-expiry tracking
+* Expired-stock write-off
+* Reorder suggestions
+
+\---
+
+## 7\. Automated Testing and Validation
+
+The project includes automated tests for business rules, service helpers, command contracts and schema-related checks.
+
+### Run all tests
+
+```powershell
+python -m pytest -q
+```
+
+### Latest local verification
+
+The latest completed local verification reported:
+
+* **148 automated tests passed**
+* **32/32 official sample-pack validation checks passed**
+* **309 commands processed**
+* **0 input or processing errors**
+* **6 CSV output files generated**
+
+The official sample-pack validator checks scenarios including:
+
+* FEFO batch ordering and tie-breaking
+* Duplicate prescription rejection
+* Expiry eligibility
+* Pack-size and quantity calculations
+* Medicine substitution
+* Near-expiry discounts
+* Schedule X dispensing restrictions
+* Partial dispensing
+* Recall-related violations
+* OTC purchase limits
+* Doctor registration validation
+* Refill restrictions
+* Supplier-return stock reservation
+* Expired-batch write-off
+
+**Validation limitation:** The 32 checks verify the supplied planted scenarios and output structure. They do not establish a field-for-field match with faculty's hidden expected output.
+
+\---
+
+## 8\. MySQL Database Setup
+
+The MySQL-backed application provides persistent database workflows separate from the official sample-pack adapter.
+
+### Requirements
+
+* MySQL Server 8.0+
+* MySQL Workbench or another MySQL client
+* Python dependencies installed
+
+### Step 1: Configure environment variables
+
+Copy `.env.example` to `.env`:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Update the local database configuration in `.env` with your own MySQL settings.
+
+**Important:** Never commit your actual `.env` file or database credentials to GitHub.
+
+### Step 2: Create the database
+
+Create or select a database named:
+
+```sql
+CREATE DATABASE pharmacy\_inventory;
+```
+
+### Step 3: Execute SQL schema files
+
+Execute the SQL files in MySQL Workbench in this order:
+
+1. `app/database/schema.sql`
+2. `app/database/dispensing\_schema.sql`
+3. `app/database/billing\_schema.sql`
+4. `app/database/compliance\_schema.sql`
+5. `app/database/operational\_schema.sql`
+
+The operational migration includes `ALTER TABLE` statements. Back up an existing database before applying it, and check the current schema before applying migrations to an existing installation.
+
+### Step 4: Verify the operational schema
+
+```powershell
+python verify\_operational\_schema.py
+```
+
+This script checks the presence of the required operational tables and columns.
+
+\---
+
+## 9\. JSONL Command Interface
+
+The repository also provides a JSONL command-file interface through `run\_commands.py`.
+
+Each non-empty line represents one JSON command.
+
+Example:
+
+```json
+{"command\_id":"C001","command":"get\_fefo\_batches","parameters":{"drug\_id":1,"dispense\_date":"2026-11-06","days\_supply":10}}
+```
+
+Execute a JSONL command file using:
+
+```powershell
+python run\_commands.py commands.jsonl --output results.jsonl
+```
+
+Each input command produces a corresponding JSON result line.
+
+Supported command names and parameter formats are documented in:
+
+`docs/command\_file\_format.md`
+
+**Important:** The JSONL command interface is different from the pipe-delimited command format used by the official sample pack. The official sample pack must be processed using `run\_official\_pack.py`.
+
+\---
+
+## 10\. MySQL Demonstrations
+
+The repository contains scripts for demonstrating individual application workflows.
+
+Examples include:
+
+```powershell
+python test\_db\_connection.py
+python run\_drug\_registration\_demo.py
+python run\_batch\_receiving\_demo.py
+python run\_fefo\_database\_demo.py
+python run\_dispensing\_demo.py
+python run\_partial\_dispensing\_demo.py
+```
+
+The billing demonstration requires an existing dispense ID:
+
+```powershell
+python run\_billing\_demo.py <dispense\_id>
 ```
 
 ### Prepare a disposable MySQL test database
 
-Generate a single SQL script that creates the test schema in the correct migration order and explicitly targets `pharmacy_inventory_test`:
+Generate the test database schema:
 
 ```powershell
-python prepare_mysql_test_schema.py
+python prepare\_mysql\_test\_schema.py
 ```
 
-Open the generated `pharmacy_inventory_test_schema.sql` in MySQL Workbench and execute it. The generated file is ignored by Git and should not be committed.
+Execute the generated SQL file in MySQL Workbench to create the disposable `pharmacy\_inventory\_test` schema.
 
-### Guarded live-MySQL acceptance demonstration
-
-For database transaction checks, prepare a disposable `pharmacy_inventory_test` database using `docs/mysql_integration_runbook.md`. The acceptance script refuses to run unless `SELECT DATABASE()` returns exactly `pharmacy_inventory_test`:
+### Guarded MySQL acceptance demonstration
 
 ```powershell
-$env:DB_NAME = "pharmacy_inventory_test"
-python run_mysql_acceptance_demo.py
-Remove-Item Env:DB_NAME
+$env:DB\_NAME = "pharmacy\_inventory\_test"
+
+python run\_mysql\_acceptance\_demo.py
+
+Remove-Item Env:DB\_NAME
 ```
 
-This script creates synthetic supplier, customer, doctor, patient, drug, batch, prescription, dispense, bill, return, recall, write-off and reorder records. It leaves those synthetic records in the test database for inspection. It never cleans or deletes records automatically. Do not run it against the normal `pharmacy_inventory` database.
+The acceptance demonstration checks that the selected database is exactly `pharmacy\_inventory\_test` before running.
 
-The latest isolated review run for this snapshot reports 139 passing tests, successful Python compilation and a successful safe policy demo. Run `verify_operational_schema.py` and the guarded acceptance script separately against your local MySQL test database; this repository review cannot verify the state of that server.
+It creates synthetic records for testing and does not automatically delete them.
 
+**Safety:** Run database-writing demonstrations only against a disposable test database. Do not run them against a shared or production database without reviewing their effects.
 
-## JSONL command-file interface
+\---
 
-The project brief identifies JSONL command files. This repository provides a documented command envelope:
+## 11\. Project Documentation
 
-```json
-{"command_id":"C001","command":"get_fefo_batches","parameters":{"drug_id":1,"dispense_date":"2026-11-06","days_supply":10}}
-```
+Additional project documentation is available in the `docs/` directory.
 
-Run a UTF-8 JSONL file with:
+| Document | Purpose |
 
-```powershell
-python run_commands.py commands.jsonl --output results.jsonl
-```
+|---|---|
 
-Each non-empty input line produces one JSON result line. A failed command is reported for that line and does not stop subsequent lines. Supported command names and parameter formats are listed in `docs/command_file_format.md`. This is the project's documented JSONL interface; confirm the exact envelope and operation names against any official faculty/evaluator sample before relying on evaluator compatibility. Commands that create or modify records should be run only against a disposable/demo database.
+| `design\_document.pdf` | Complete project design and technical documentation |
 
-## Current implementation status
+| `design\_document.md` | Markdown version of the design document |
 
-The code snapshot contains both **business-rule/policy helpers** and **database workflow methods**. These are different levels of implementation and should not be described as equivalent.
+| `decision\_log.md` | Architecture decisions, assumptions and open questions |
 
-### Core application workflows present in code
+| `command\_file\_format.md` | JSONL command interface specification |
 
-- Drug registration and substitution-group creation (`DrugService`).
-- Supplier, customer, doctor and patient master-data registration (`MasterDataService`).
-- Prescription intake with calculated prescription-line quantities and Schedule H/H1/X intake validation (`PrescriptionService`).
-- Supplier batch receiving and inventory receipt movements (`BatchService`).
-- FEFO eligibility, expiry-month handling, ordering and tie-breaking (`FEFOSelector` and `InventoryService`).
-- Prescription-line dispensing, batch allocation, partial-fill tracking and inventory movements (`DispensingService`).
-- Schedule validation calls and H1/X register insertion methods in the dispensing transaction (`PrescriptionComplianceService` and `DispensingRepository`).
-- GST-inclusive billing calculations and persisted bill/bill-line creation (`BillingService`).
-- OTC sale transaction path with a daily two-pack-equivalent cap aggregated across Schedule NONE products, FEFO stock allocation and the common dispense/bill ledger (`OTCSalesService`).
-- Same-group substitute selection in prescription dispensing when the prescribed brand has no eligible stock; prescribed and dispensed brands are retained (`DispensingService`).
-- Customer-return transaction that validates the original bill line and restores eligible quantity to its original batch (`OperationalWorkflowService.process_customer_return`).
-- Supplier-return request, reservation, completion and cancellation (`OperationalWorkflowService`).
-- Recall recording/freezing and lookup of post-recall dispensing violations (`OperationalWorkflowService`).
-- End-of-day near-expiry output, expired-batch write-off and persisted reorder suggestions (`OperationalWorkflowService.run_end_of_day`).
+| `official\_sample\_data\_pack.md` | Documentation of the official sample data pack |
 
-### Policy helpers and unit coverage
+| `official\_sample\_pack\_audit.md` | Official sample-pack output audit details |
 
-`OperationalRulesService` contains independently testable decision helpers for OTC eligibility, substitution selection, near-expiry/expired-date checks, write-off valuation, return eligibility, reorder quantities, supplier-return eligibility and recall timestamp comparisons. `PrescriptionComplianceService` contains prescription, rolling-limit and refill validators.
+| `week3\_test\_matrix.md` | Business-rule and test mapping |
 
-### Remaining validation and acceptance work
+| `week3\_completion\_status.md` | Implementation status summary |
 
-The following are **not yet claimed as fully accepted**:
+| `week3\_demo\_guide.md` | Project demonstration guidance |
 
-1. Live MySQL integration testing for all transaction paths, including commit/rollback behavior, stock consistency, duplicate requests and register consistency.
-2. End-to-end verification that actual H1/X dispensing creates the expected register rows in the configured database.
-3. Live transaction verification of OTC sales, substitution, customer returns, supplier returns, recall freezes/violations, write-offs and reorder suggestions using synthetic data in a disposable database.
-4. Compare the implemented JSONL command envelope and operation names in `docs/command_file_format.md` against the official faculty/evaluator sample, if supplied. The parser is implemented for the documented project contract but evaluator compatibility is not yet verified.
-5. Execution of the official evaluator input and comparison against its expected output.
+| `mysql\_integration\_runbook.md` | MySQL integration and testing instructions |
 
-See `docs/design_document.md` for BR-01 through BR-12, `docs/week3_test_matrix.md` for rule-to-test mapping and integration status, `docs/week3_completion_status.md` for the completion summary, `docs/week3_demo_guide.md` for the demo, and `docs/decision_log.md` for assumptions and unresolved decisions.
+| `week3\_submission\_report.md` | Week 3 submission report |
 
-## Week 3 submission statement
+| `week3\_submission\_summary.md` | Week 3 submission summary |---
 
-The updated Week 3 snapshot has **139 automated tests passing in the isolated review environment** and a successful safe operational-policy demo. Core service methods for the listed inventory, dispensing, billing and operational workflows are present. Full live-MySQL end-to-end verification and comparison with the official command-file evaluator sample remain outstanding; they are not represented as complete in this README.
+## 12\. Current Implementation and Validation Status
 
+The repository contains business-rule helpers, MySQL-backed service workflows and a separate official sample-pack execution adapter.
 
-## Official T068-PS-061 Sample Pack
+The official sample-pack execution and its planted validation scenarios have passed the latest local checks.
 
-The team-specific input data is available in `T068-PS-061-sample-data/`. It contains CSV master files and a pipe-delimited `commands.txt`.
+The MySQL-backed workflows are implemented in the repository, but full end-to-end verification of every transaction path against a live MySQL database should be treated separately from the sample-pack results.
 
-**Important:** `run_commands.py` is the project's JSONL command interface. The official sample pack uses `COMMAND|arg1|arg2|...` lines, so use the separate sample-pack adapter:
+Similarly, compatibility with faculty's hidden field-for-field expected output has not been established by the 32 planted-scenario checks.
 
-```powershell
-python run_official_pack.py --data-dir .\T068-PS-061-sample-data --output-dir .\official_sample_outputs
-```
+\---
 
-The adapter generates six evaluator-format CSV files:
+## 13\. Project Demonstration Video
 
-- `dispense_lines.csv`
-- `bills.csv`
-- `bill_totals.csv`
-- `registers.csv`
-- `eod.csv`
-- `violations.csv`
+**Five-minute project demonstration:**
 
-The adapter processes commands in order and simulates the supplied sample-pack workflows in memory. It does not write these operations to MySQL. The MySQL-backed services and `run_mysql_acceptance_demo.py` are a separate persistence and integration demonstration.
+\[Add the uploaded demonstration video link here]
 
-### Official Sample Pack Validation
+The demonstration covers:
 
-Latest local validation results:
+1. Project introduction and problem statement
+2. System architecture
+3. Official sample-pack execution
+4. Generated CSV output files
+5. Automated testing and validation results
+6. Project conclusion
 
-- Automated test suite: **147 tests passed**.
-- Focused MySQL acceptance smoke test: **12 checks passed** against the disposable test database.
-- Official sample pack output audit: **32/32 checks passed**.
-- Six CSV output files generated successfully.
+\---
 
-**Limitation:** The 32 checks validate the supplied planted scenarios and output structure. Field-for-field comparison with the faculty's hidden expected output remains unverified.
+## 14\. Repository Information
+
+**Project:** Pharmacy Inventory Management System
+
+**Problem Statement ID:** PS-061
+
+**Team ID:** T068
+
+**GitHub Repository:**
+https://github.com/karthikeyaA06/T068-PS-061
+
+\---
+
+## 15\. Conclusion
+
+The Pharmacy Inventory Management System provides a structured approach to pharmacy inventory operations, medicine dispensing, prescription validation, billing and compliance-related workflows.
+
+The project combines business-rule implementation, database-oriented application services, automated testing and official sample-pack processing to demonstrate the core requirements of the PS-061 problem statement.

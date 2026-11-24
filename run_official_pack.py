@@ -265,9 +265,9 @@ class SamplePackEngine:
         doctor = self.doctors.get(rx["doctor_reg_no"])
 
         if schedule in {"H", "H1", "X"} and (
-         doctor is None or not as_bool(doctor["registration_valid"])
-):
-         return "INVALID_DOCTOR"
+            doctor is None or not as_bool(doctor["registration_valid"])
+        ):
+            return "INVALID_DOCTOR"
         if age < 0:
             return "INVALID_PRESCRIPTION_DATE"
         if schedule in {"H", "H1"} and age > 30:
@@ -498,8 +498,8 @@ class SamplePackEngine:
             return
 
         # Prescription-wide failures have already been handled above.
-# Drug-specific validation happens independently inside _dispense_line.
-# One rejected medicine line must not reject other valid lines.
+        # Drug-specific validation happens independently inside _dispense_line.
+        # One rejected medicine line must not reject other valid lines.
 
         self.rx_bill_count[rx_id] += 1
         bill_id = f"BILL-{rx_id}-{self.rx_bill_count[rx_id]}"
