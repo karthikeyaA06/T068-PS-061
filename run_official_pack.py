@@ -263,8 +263,11 @@ class SamplePackEngine:
         rx_date = parse_date(rx["rx_date"])
         age = (when.date() - rx_date).days
         doctor = self.doctors.get(rx["doctor_reg_no"])
-        if doctor is None or not as_bool(doctor["registration_valid"]):
-            return "INVALID_DOCTOR"
+
+        if schedule in {"H", "H1", "X"} and (
+         doctor is None or not as_bool(doctor["registration_valid"])
+):
+         return "INVALID_DOCTOR"
         if age < 0:
             return "INVALID_PRESCRIPTION_DATE"
         if schedule in {"H", "H1"} and age > 30:
@@ -494,13 +497,9 @@ class SamplePackEngine:
             self._reject_rx(line_no, rx_id, "REFILL_WITHOUT_FIRST_DISPENSE", when)
             return
 
-        # Validate all lines before mutating stock, so a prescription-level
-        # compliance failure cannot partially dispense a multi-line Rx.
-        for rx_line in self.lines_by_rx[rx_id]:
-            reason = self._validation_reason(rx_id, rx_line, when, refill=refill)
-            if reason:
-                self._reject_rx(line_no, rx_id, reason, when)
-                return
+        # Prescription-wide failures have already been handled above.
+# Drug-specific validation happens independently inside _dispense_line.
+# One rejected medicine line must not reject other valid lines.
 
         self.rx_bill_count[rx_id] += 1
         bill_id = f"BILL-{rx_id}-{self.rx_bill_count[rx_id]}"

@@ -43,6 +43,11 @@ def run_pack(tmp_path):
 def rows_for(result, rx_id):
     return [r for r in result["dispense_lines"] if r["rx_id"] == rx_id]
 
+def rows_for_line(result, rx_id, line_no):
+    return [
+        row for row in rows_for(result, rx_id)
+        if int(row["line_no"]) == line_no
+    ]
 
 def test_official_pack_loads_all_rows_and_commands(tmp_path):
     engine, result = run_pack(tmp_path)
@@ -133,3 +138,50 @@ def test_supplier_return_pending_excludes_reorder_and_writeoff_is_created(tmp_pa
     # reorder for that drug on 2026-10-06.
     assert not any(r["date"] == "2026-10-06" and r["action"] == "REORDER" and r["drug_id"] == "DRG-055" for r in eod)
     assert any(r["date"] == "2026-10-01" and r["action"] == "WRITE_OFF" and r["batch_id"] == "BAT-0001" for r in eod)
+
+def test_rejected_line_does_not_reject_other_valid_lines(tmp_path):
+    _, result = run_pack(tmp_path)
+
+    # RX-0147: line 2 exceeds its limit.
+    # Line 1 must still be dispensed and billed.
+    rx147_line1 = rows_for_line(result, "RX-0147", 1)
+    rx147_line2 = rows_for_line(result, "RX-0147", 2)
+
+    assert any(
+        int(r["units"]) > 0 and r["status"] != "REJECTED"
+        for r in rx147_line1
+    )
+    assert any(
+        r["status"] == "REJECTED"
+        and r["reason_code"] == "REJECTED_LIMIT"
+        for r in rx147_line2
+    )
+    assert any(
+        b["rx_or_sale_id"] == "RX-0147"
+        and int(b["line_no"]) == 1
+        for b in result["bills"]
+    )
+
+    # RX-0159: line 1 exceeds its limit.
+    # Lines 2 and 3 must still be processed.
+    rx159_line1 = rows_for_line(result, "RX-0159", 1)
+
+    assert any(
+        r["status"] == "REJECTED"
+        and r["reason_code"] == "REJECTED_LIMIT"
+        for r in rx159_line1
+    )
+
+    for line_no in (2, 3):
+        rows = rows_for_line(result, "RX-0159", line_no)
+
+        assert any(
+            int(r["units"]) > 0 and r["status"] != "REJECTED"
+            for r in rows
+        ), f"RX-0159 line {line_no} should be processed"
+
+        assert any(
+            b["rx_or_sale_id"] == "RX-0159"
+            and int(b["line_no"]) == line_no
+            for b in result["bills"]
+        )
