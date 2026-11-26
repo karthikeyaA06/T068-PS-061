@@ -481,7 +481,7 @@ Similarly, compatibility with faculty's hidden field-for-field expected output h
 
 **Five-minute project demonstration:**
 
-\[Add the uploaded demonstration video link here]
+\[https://drive.google.com/file/d/16WSmI8F4_4KgYBnKaL4HPoNgfedu9Mf9/view?usp=drivesdk]
 
 The demonstration covers:
 
